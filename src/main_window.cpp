@@ -142,8 +142,8 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     autoDocking->init(n);
 
     backgroundWidget = new QWidget(this);
-    backgroundWidget->setFixedSize(1920, 1080);
-    backgroundWidget->setGeometry(0, 0, 1920, 1080);
+    backgroundWidget->setFixedSize(1280, 800);
+    backgroundWidget->setGeometry(0, 0, 1280, 800);
     backgroundWidget->hide();
 
     serviceImage = new QLabel(backgroundWidget);
@@ -320,6 +320,8 @@ void MainWindow::onConnectServer()
     enableDxl = true;
     dxlControl->dxl_init();
     ui->cbEnableDxl->setChecked(enableDxl);
+
+    connectServer = true;
 }
 
 void MainWindow::readMessage()
@@ -338,13 +340,17 @@ void MainWindow::readMessage()
             if (ch[2] == 0x01)
             {
                 // qDebug() << "Geust come to front UI Monitor";
+                viewImageSmile();
                 btnGuestClicked();
-
             }
             else if (ch[2] == 0x00)
             {
                 // qDebug() << "Geust leaved";
+                // viewImageWink();
                 btnHomeClicked();
+            }
+            else if (ch[2] == 0x02){
+                viewImageWait();
             }
         }
     }
@@ -367,16 +373,13 @@ void MainWindow::on_btnSetInitialPose_clicked()
 
     timerScenario->stop();
     timerTurning->stop();
+    timerDocking->stop();
 
-    // viewImageSleep();
-    // viewImageSmile();
-    // viewImageWink();
-    viewImageWait();
+    viewImageSleep();
 }
 
 void MainWindow::btnGuestClicked()
 {
-
     if (enableDxl)
     {
         dxlControl->moveDxl();
@@ -400,6 +403,7 @@ void MainWindow::goGuest()
 
 void MainWindow::btnHomeClicked()
 {
+    viewImageSmile();
 
     if (enableDxl)
     {
@@ -514,7 +518,7 @@ void MainWindow::scenarioUpdate()
             if(wp_indx3 >= wp_size3){
                 if (qnode.m_TopicPacket.m_GoalReached){
                     timerScenario->stop();
-                    timerDocking->start(10000);
+                    docking();
                 }
             }
             break;
@@ -554,6 +558,7 @@ void MainWindow::turning()
                 txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                 m_Client->socket->write(txData);
             }
+            viewImageWink();
             // btnHomeClicked();
         }
         else if(event_flag == 5){
@@ -590,7 +595,7 @@ void MainWindow::btnRunDxlClicked()
 
 void MainWindow::btnDockingClicked()
 {
-    timerDocking->start(1000);
+    timerDocking->start(100);
 }
 
 void MainWindow::docking()
@@ -604,7 +609,7 @@ void MainWindow::docking()
     }
     else if(dock_state == 2){
         qnode.KobukiMove(-0.3, 0.0, 0.0, 0.0, 0.0, 0.0);
-        timerDocking->start(1000);
+        timerDocking->start(100);
     }
 }
 
@@ -615,7 +620,7 @@ void MainWindow::viewImageSmile(){
     labelDrawImage(
         serviceImage, 
         "/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/smile.png", 
-        2.5
+        1.5
     );
 }
 
@@ -626,7 +631,7 @@ void MainWindow::viewImageWink(){
     labelDrawImage(
         serviceImage, 
         "/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/wink.jpg", 
-        4.0
+        2.0
     );
 }
 
@@ -637,7 +642,7 @@ void MainWindow::viewImageSleep(){
     labelDrawImage(
         serviceImage, 
         "/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/sleep.jpg", 
-        1.5
+        1.0
     );
 }
 
@@ -647,7 +652,7 @@ void MainWindow::viewImageWait(){
     backgroundWidget->show();
     QMovie *movie = new QMovie("/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/wait.gif");
     QSize movieSize;
-    movieSize.setWidth(serviceImage->width()*0.45);
+    movieSize.setWidth(serviceImage->width()*0.5);
     movieSize.setHeight(serviceImage->height()*0.8);
     movie->setScaledSize(movieSize);
     serviceImage->setAlignment(Qt::AlignmentFlag::AlignCenter);

@@ -17,6 +17,11 @@
 #include <QTime>
 #include <QTimer>
 #include <QStandardItemModel>
+#include <QLabel>
+#include <QPainter>
+#include <QPicture>
+#include <QPalette>
+#include <QWidget>
 
 #include <rviz/render_panel.h>
 #include <rviz/visualization_manager.h>
@@ -106,6 +111,13 @@ private slots:
     void turning();
     void docking();
 
+    // Service Image Viewer
+    void viewImageSmile();
+    void viewImageWink();
+    void viewImageSleep();
+    void viewImageWait();
+    void labelDrawImage(QLabel *label, QString imagePath, double scale);
+
 private:
     Ui::MainWindowDesign    *ui;
     QNode                   qnode;
@@ -143,6 +155,9 @@ private:
 
     enum {Px, Py, Rz, Rw};
     enum {LEFT=1, RIGHT};
+
+    QLabel                  *serviceImage;
+    QWidget                 *backgroundWidget;
 };
 
 }  // namespace robomap

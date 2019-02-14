@@ -646,10 +646,7 @@ void MainWindow::viewImageWait(){
     ui->dock_status->close();
     backgroundWidget->show();
     QMovie *movie = new QMovie("/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/wait.gif");
-    QSize movieSize;
-    movieSize.setWidth(serviceImage->width()*0.45);
-    movieSize.setHeight(serviceImage->height()*0.8);
-    movie->setScaledSize(movieSize);
+    moview
     serviceImage->setAlignment(Qt::AlignmentFlag::AlignCenter);
     serviceImage->setMovie(movie);
     movie->start();

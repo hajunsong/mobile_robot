@@ -24,7 +24,7 @@ int main(int argc, char **argv) {
     **********************/
     QApplication app(argc, argv);
     MobileRobot::MainWindow w(argc,argv);
-    w.show();
+    w.showFullScreen();
     app.connect(&app, SIGNAL(lastWindowClosed()), &app, SLOT(quit()));
     int result = app.exec();
 

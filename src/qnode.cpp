@@ -90,6 +90,7 @@ bool QNode::init(const std::string &master_url, const std::string &host_url)
         cmd_vel_publisher = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
         imu_subscriber = n.subscribe("mobile_base/sensors/imu_data", 3000, &QNode::ImuCallback, this);
         dock_subscriber = n.subscribe("mobile_base/sensors/dock_ir", 3000, &QNode::DockCallback, this);
+        goal_subscriber = n.subscribe("move_base/status", 100, &QNode::GoalCallback, this);
 
         start();
     }
@@ -176,16 +177,16 @@ void QNode::OdomCallback(const nav_msgs::Odometry_<std::allocator<void> >::Const
     m_TopicPacket.m_OdomRw = Odom->pose.pose.orientation.w;
 }
 
-void QNode::KobukiMove(VelCmd linear, VelCmd angular) {
+void QNode::KobukiMove(double vx, double vy, double vz, double wx, double wy, double wz) {
     geometry_msgs::Twist cmd;
 
-    cmd.linear.x = linear.x;
-    cmd.linear.y = linear.y;
-    cmd.linear.z = linear.z;
+    cmd.linear.x = vx;
+    cmd.linear.y = vy;
+    cmd.linear.z = vz;
 
-    cmd.angular.x = angular.x;
-    cmd.angular.y = angular.y;
-    cmd.angular.z = angular.z;
+    cmd.angular.x = wx;
+    cmd.angular.y = wy;
+    cmd.angular.z = wz;
 
     //publish the assembled command
     cmd_vel_publisher.publish(cmd);
@@ -206,6 +207,20 @@ void QNode::DockCallback(const kobuki_msgs::DockInfraRed_<std::allocator<void> >
     m_TopicPacket.m_IrRight = dock->data[0];
     m_TopicPacket.m_IrCenter = dock->data[1];
     m_TopicPacket.m_IrLeft = dock->data[2];
+}
+
+void QNode::GoalCallback(const actionlib_msgs::GoalStatusArray_<std::allocator<void> >::ConstPtr &goal){
+//    ROS_INFO("goal status : %d", goal->status_list.back().status == goal->status_list.back().SUCCEEDED);
+    //  cout << (goal->status_list.back().status == goal->status_list.back().SUCCEEDED) << endl;
+    m_TopicPacket.m_GoalReached = 0;
+    // ROS_INFO("Goal Status Size : %d", goal->status_list.size());
+
+    if (goal->status_list.size() > 0){
+        m_TopicPacket.m_GoalReached = 
+            goal->status_list.back().status == goal->status_list.back().SUCCEEDED;
+        // ROS_INFO("Goal Status : %d", m_TopicPacket.m_GoalReached);
+    }
+
 }
 
 CTopicPacket* QNode::GetTopicPacket()

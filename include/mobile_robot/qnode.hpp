@@ -31,6 +31,7 @@
 #include "geometry_msgs/Twist.h"
 #include "sensor_msgs/Imu.h"
 #include "kobuki_msgs/DockInfraRed.h"
+#include "actionlib_msgs/GoalStatusArray.h"
 
 #include <iostream>
 using namespace std;
@@ -56,14 +57,11 @@ struct CTopicPacket
 	double m_ImuRw;
 	double m_ImuYaw;
 
-        double m_IrLeft;
-        double m_IrCenter;
-        double m_IrRight;
-};
+	double m_IrLeft;
+	double m_IrCenter;
+	double m_IrRight;
 
-struct VelCmd
-{
-	double x, y, z;
+	bool m_GoalReached;
 };
 
 /*****************************************************************************
@@ -80,7 +78,7 @@ namespace MobileRobot
 class QNode : public QThread
 {
 	Q_OBJECT
-  public:
+public:
 	QNode(int argc, char **argv);
 	virtual ~QNode();
 	bool init();
@@ -106,20 +104,21 @@ class QNode : public QThread
 	void PoseCallback(const geometry_msgs::PoseWithCovarianceStamped::ConstPtr &amcl_pose);
 
 	void OdomCallback(const nav_msgs::Odometry::ConstPtr &Odom);
-	void KobukiMove(VelCmd linear, VelCmd angular);
-        void ImuCallback(const sensor_msgs::Imu::ConstPtr &imu);
-        void DockCallback(const kobuki_msgs::DockInfraRed::ConstPtr &dock);
+	void KobukiMove(double vx, double vy, double vz, double wx, double wy, double wz);
+	void ImuCallback(const sensor_msgs::Imu::ConstPtr &imu);
+	void DockCallback(const kobuki_msgs::DockInfraRed::ConstPtr &dock);
+	void GoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr &goal);
 
-  public:
+public:
 	CTopicPacket *GetTopicPacket();
 
 	//ros::NodeHandle GetNodeHandle();
 
-  Q_SIGNALS:
+Q_SIGNALS:
 	void loggingUpdated();
 	void rosShutdown();
 
-  private:
+private:
 	int init_argc;
 
 	char **init_argv;
@@ -133,13 +132,14 @@ class QNode : public QThread
 	QStringListModel logging_model;
 
 	ros::Publisher cmd_vel_publisher;
-        ros::Subscriber imu_subscriber;
-        ros::Subscriber dock_subscriber;
+	ros::Subscriber imu_subscriber;
+	ros::Subscriber dock_subscriber;
+	ros::Subscriber goal_subscriber;
 
-  private:
+private:
 	QString _SystemMsg;
 
-  public:
+public:
 	CTopicPacket m_TopicPacket;
 };
 

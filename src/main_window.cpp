@@ -14,33 +14,36 @@
 #include <iostream>
 #include "../include/mobile_robot/main_window.hpp"
 
-const int wp_size1 = 3;
+double init_pose[4] = {0.057, 0.052, -0.037, 0.999};
+
+const int wp_size1 = 2;
 double path1[wp_size1][4] = {
-    -0.488, 0.162, 0.987, 0.158,
-    -0.942, 0.368, 0.998, 0.055,
-    -1.225, 0.311, 0.998, 0.055};
+    -0.535, 0.181, 0.992, 0.123,
+    -0.739, 0.233, 0.994, 0.107
+};
 int wp_indx1 = 0;
 
-const int wp_size2 = 5;
+const int wp_size2 = 2;
 double path2[wp_size2][4] = {
-    -0.702, 0.263, -0.130, 0.992,
-    -0.745, 0.203, -0.108, 0.994,
-    -0.484, 0.184, -0.098, 0.995,
-    -0.172, 0.153, -0.127, 0.992,
-    -0.002, 0.088, -0.020, 1.000};
+    -0.977, 0.340, 0.996, 0.084,
+    -1.255, 0.400, 0.996, 0.085
+};
 int wp_indx2 = 0;
 
-const int wp_size3 = 8;
+const int wp_size3 = 4;
 double path3[wp_size3][4] = {
-    -0.329, -1.133, 0.500, 0.866,
-    -0.167, -0.812, 0.558, 0.830,
-    0.042, -0.321, 0.685, 0.729,
-    -0.004, 0.217, 0.760, 0.650,
-    -0.118, 0.676, 0.767, 0.642,
-    -0.287, 1.160, 0.884, 0.467,
-    -0.505, 1.290, 0.936, 0.352,
-    -0.600, 1.485, 0.952, 0.307};
+    -1.015, 0.315, -0.113, 0.994,
+    -0.867, 0.282, -0.095, 0.995,
+    -0.532, 0.215, -0.063, 0.998,
+    -0.196, 0.149, -0.075, 0.997
+};
 int wp_indx3 = 0;
+
+const double D2R = M_PI/180.0;
+const double des_ang1 = 180*D2R;
+const double des_ang2 = -90*D2R;
+const double des_ang3 = 180*D2R;
+const double des_ang4 = 0*D2R;
 
 /*****************************************************************************
 ** Namespaces
@@ -97,24 +100,19 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
 
     timerUIUpdate = new QTimer(this);
     connect(timerUIUpdate, SIGNAL(timeout()), this, SLOT(UiUpdate()));
-    timerUIUpdate->start(30);
+    timerUIUpdate->start(100);
 
-    timerUpdate = new QTimer(this);
-    connect(timerUpdate, SIGNAL(timeout()), this, SLOT(update()));
-    timerUpdate->setInterval(1000);
+    connect(ui->btnConnectServer, SIGNAL(clicked()), this, SLOT(btnConnectServerClicked()));
 
-    connect(ui->btnConnectServer, SIGNAL(clicked()), this, SLOT(btnConnectServer_clicked()));
-
-    connect(ui->btnScenario1, SIGNAL(clicked()), this, SLOT(btnScenario1_clicked()));
-    connect(ui->btnScenario4, SIGNAL(clicked()), this, SLOT(btnScenario4_clicked()));
+    connect(ui->btnGuest, SIGNAL(clicked()), this, SLOT(btnGuestClicked()));
+    connect(ui->btnHome, SIGNAL(clicked()), this, SLOT(btnHomeClicked()));
 
     timerScenario = new QTimer(this);
     connect(timerScenario, SIGNAL(timeout()), this, SLOT(scenarioUpdate()));
 
     guestCome = false;
     event_flag = 0;
-
-    //    connect(ui->pushButton, SIGNAL(clicked()), this, SLOT(btnTest_clicked()));
+    connectServer = false;
 
     m_Client = new TcpClient(this);
 
@@ -122,17 +120,18 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     connect(m_Client->socket, SIGNAL(readyRead()), this, SLOT(readMessage()));
 
     enableDxl = false;
-    connect(ui->cbEnableDxl, SIGNAL(stateChanged(int)), this, SLOT(cbEnableDxl_stateChanged(int)));
-    connect(ui->btnRunDxl, SIGNAL(clicked()), this, SLOT(btnRunDxl_clicked()));
+    connect(ui->cbEnableDxl, SIGNAL(stateChanged(int)), this, SLOT(cbEnableDxlStateChanged(int)));
+    connect(ui->btnRunDxl, SIGNAL(clicked()), this, SLOT(btnRunDxlClicked()));
 
     dxlControl = new DxlControl();
 
-    connect(ui->btnDocking, SIGNAL(clicked()), this, SLOT(btnDocking_clicked()));
+    connect(ui->btnDocking, SIGNAL(clicked()), this, SLOT(btnDockingClicked()));
 
     init_flag = false;
 
     timerTurning = new QTimer(this);
     connect(timerTurning, SIGNAL(timeout()), this, SLOT(turning()));
+    timerTurning->setInterval(50);
 
     timerDocking = new QTimer(this);
     connect(timerDocking, SIGNAL(timeout()), this, SLOT(docking()));
@@ -146,7 +145,6 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
 MainWindow::~MainWindow()
 {
     timerUIUpdate->stop();
-    timerUpdate->stop();
     delete m_Client;
     delete dxlControl;
     delete autoDocking;
@@ -295,36 +293,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
     QMainWindow::closeEvent(event);
 }
 
-void MainWindow::on_btnSetInitialPose_clicked()
-{
-    /*
-        Position(0.531, 0.237, 0.000), Orientation(0.000, 0.000, 0.009, 1.000) = Angle: 0.018
-        Position(-0.685, 1.465, 0.000), Orientation(0.000, 0.000, 0.950, 0.312) = Angle: 2.506
-        Position(0.104, 0.035, 0.000), Orientation(0.000, 0.000, 0.002, 1.000) = Angle: 0.004
-    */
-    double Px = 0.104;
-    double Py = 0.035;
-    double Rz = 0.002;
-    double Rw = 1.000;
-    double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-
-    m_Rviz->SetInitialPose(Px, Py, yaw);
-
-    wp_indx1 = 0;
-    wp_indx2 = 0;
-    wp_indx3 = 0;
-    if (init_flag == false)
-    {
-        m_Rviz->SetGoalPose(Px, Py, yaw);
-        init_flag = true;
-    }
-}
-
-void MainWindow::update()
-{
-}
-
-void MainWindow::btnConnectServer_clicked()
+void MainWindow::btnConnectServerClicked()
 {
     m_Client->setIpAddress(ui->ipAddress->text());
     m_Client->setPortNum(ui->portNum->text());
@@ -361,18 +330,38 @@ void MainWindow::readMessage()
             if (ch[2] == 0x01)
             {
                 // qDebug() << "Geust come to front UI Monitor";
-                btnScenario1_clicked();
+                btnGuestClicked();
+
             }
             else if (ch[2] == 0x00)
             {
-                btnScenario4_clicked();
                 // qDebug() << "Geust leaved";
+                btnHomeClicked();
             }
         }
     }
 }
 
-void MainWindow::btnScenario1_clicked()
+void MainWindow::on_btnSetInitialPose_clicked()
+{
+    double yaw = atan2(2.0 * (init_pose[Rw] * init_pose[Rz]), 1.0 - 2.0 * (init_pose[Rz] * init_pose[Rz]));
+
+    m_Rviz->SetInitialPose(init_pose[Px], init_pose[Py], yaw);
+
+    wp_indx1 = 0;
+    wp_indx2 = 0;
+    wp_indx3 = 0;
+    if (init_flag == false)
+    {
+        m_Rviz->SetGoalPose(init_pose[Px], init_pose[Py], yaw);
+        init_flag = true;
+    }
+
+    timerScenario->stop();
+    timerTurning->stop();
+}
+
+void MainWindow::btnGuestClicked()
 {
 
     if (enableDxl)
@@ -380,44 +369,23 @@ void MainWindow::btnScenario1_clicked()
         dxlControl->moveDxl();
         dxlControl->setHomePosition();
     }
-
-    linear.x = -0.1;
-    linear.y = 0.0;
-    linear.z = 0.0;
-
-    angular.x = 0.0;
-    angular.y = 0.0;
-    angular.z = -0.2;
 
     event_flag = 1;
     scenarioCnt = 0;
     timerScenario->start(50);
 }
 
-void MainWindow::btnScenario2_clicked()
+void MainWindow::goGuest()
 {
-    double yaw = qnode.m_TopicPacket.m_ImuYaw;
-    des_ang = 3.141592;
-    timerTurning->start(10);
-    event_flag = 2;
-    // btnScenario3_clicked();
-}
+    double yaw = atan2(2.0 * (path1[wp_indx1][Rw] * path1[wp_indx1][Rz]), 1.0 - 2.0 * (path1[wp_indx1][Rz] * path1[wp_indx1][Rz]));
 
-void MainWindow::btnScenario3_clicked()
-{
-    double Px = path1[wp_indx1][0];
-    double Py = path1[wp_indx1][1];
-    double Rz = path1[wp_indx1][2];
-    double Rw = path1[wp_indx1][3];
-    double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-
-    m_Rviz->SetGoalPose(Px, Py, yaw);
+    m_Rviz->SetGoalPose(path1[wp_indx1][Px], path1[wp_indx1][Py], yaw);
 
     event_flag = 3;
     timerScenario->start(100);
 }
 
-void MainWindow::btnScenario4_clicked()
+void MainWindow::btnHomeClicked()
 {
 
     if (enableDxl)
@@ -426,261 +394,166 @@ void MainWindow::btnScenario4_clicked()
         dxlControl->setHomePosition();
     }
 
-    // linear.x = -0.1;
-    // linear.y = 0.0;
-    // linear.z = 0.0;
+    event_flag = 5;
+    des_ang = des_ang3;
+    turn_direct = RIGHT;
+    timerTurning->start();
+}
 
-    // angular.x = 0.0;
-    // angular.y = 0.0;
-    // angular.z = -1.0;
+void MainWindow::goEnd(){
+    double yaw = atan2(2.0 * (path2[wp_indx2][Rw] * path2[wp_indx2][Rz]), 1.0 - 2.0 * (path2[wp_indx2][Rz] * path2[wp_indx2][Rz]));
+
+    m_Rviz->SetGoalPose(path2[wp_indx2][Px], path2[wp_indx2][Py], yaw);
 
     event_flag = 6;
-    // scenarioCnt = 0;
-    // timerScenario->start(30);
-
-    double yaw = qnode.m_TopicPacket.m_ImuYaw;
-    des_ang = 0; //3.141592/2.0;
-    timerTurning->start(10);
+    timerScenario->start(10);
 }
 
-void MainWindow::btnScenario4()
-{
-    double Px = path2[wp_indx2][0];
-    double Py = path2[wp_indx2][1];
-    double Rz = path2[wp_indx2][2];
-    double Rw = path2[wp_indx2][3];
-    double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
+void MainWindow::goHome(){
+    double yaw = atan2(2.0 * (path3[wp_indx3][Rw] * path3[wp_indx3][Rz]), 1.0 - 2.0 * (path3[wp_indx3][Rz] * path3[wp_indx3][Rz]));
 
-    m_Rviz->SetGoalPose(Px, Py, yaw);
+    m_Rviz->SetGoalPose(path3[wp_indx3][Px], path3[wp_indx3][Py], yaw);
 
-    event_flag = 4;
-    timerScenario->start(100);
-}
-
-void MainWindow::btnScenario5_clicked()
-{
-    linear.x = 0.0;
-    linear.y = 0.0;
-    linear.z = 0.0;
-
-    angular.x = 0.0;
-    angular.y = 0.0;
-    angular.z = -1.0;
-
-    event_flag = 7;
-    scenarioCnt = 0;
-    timerScenario->start(100);
-}
-
-void MainWindow::btnScenario5()
-{
-    double Px = path3[wp_indx3][0];
-    double Py = path3[wp_indx3][1];
-    double Rz = path3[wp_indx3][2];
-    double Rw = path3[wp_indx3][3];
-    double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-
-    m_Rviz->SetGoalPose(Px, Py, yaw);
-
-    event_flag = 5;
-    timerScenario->start(100);
+    event_flag = 8;
+    timerScenario->start(10);
 }
 
 void MainWindow::scenarioUpdate()
 {
-    //    qDebug() << event_flag;
-    if (event_flag == 1 || event_flag == 6 || event_flag == 7)
+    switch (event_flag)
     {
-        qnode.KobukiMove(linear, angular);
-        scenarioCnt++;
-        if (scenarioCnt > 30)
+        case 1:
         {
-            timerScenario->stop();
-            if (event_flag == 1)
+            qnode.KobukiMove(-0.15, 0.0, 0.0, 0.0, 0.0, -0.2);
+            scenarioCnt++;
+            if (scenarioCnt > 30)
             {
+                timerScenario->stop();
                 event_flag = 2;
-                btnScenario2_clicked();
+                des_ang = des_ang1;
+                turn_direct = LEFT;
+                timerTurning->start();
             }
-            else if (event_flag == 6)
-            {
-                btnScenario4();
-            }
-            else if (event_flag == 7)
-            {
-                btnScenario5();
-            }
+            break;
         }
-    }
-    else if (event_flag == 3)
-    {
-        double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path1[wp_indx1][0], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path1[wp_indx1][1], 2));
-        if (dist <= 0.6)
+        case 3:
         {
-            wp_indx1++;
-            if (wp_indx1 < wp_size1)
+            double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path1[wp_indx1][Px], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path1[wp_indx1][Py], 2));
+            if (dist <= 0.6)
             {
-                double Px = path1[wp_indx1][0];
-                double Py = path1[wp_indx1][1];
-                double Rz = path1[wp_indx1][2];
-                double Rw = path1[wp_indx1][3];
-                double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-
-                m_Rviz->SetGoalPose(Px, Py, yaw);
-            }
-            else
-            {
-                double Rz = qnode.m_TopicPacket.m_OdomRz;
-                double Rw = qnode.m_TopicPacket.m_OdomRw;
-                double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-                // double err_z = abs(Rz - qnode.m_TopicPacket.m_AmclRz);
-                // double err_w = abs(Rw - qnode.m_TopicPacket.m_AmclRw);
-                // qDebug() << "err_Z : " + QString::number(err_z);
-                // qDebug() << "err_w : " + QString::number(err_w);
-                // cout << "flag " << event_flag << " yaw : " << yaw << endl;
-                // if (err_z < 0.15)
-                // {
-                timerScenario->stop();
-
-                if (enableDxl)
+                wp_indx1++;
+                if (wp_indx1 < wp_size1)
                 {
-                    QByteArray txData;
-                    txData.append(QByteArray::fromRawData("\x02\x05", 2));
-                    txData.append(QByteArray::fromRawData("\x02", 1));
-                    txData.append(QByteArray::fromRawData("\x0D\x05", 2));
-                    m_Client->socket->write(txData);
+                    double yaw = atan2(2.0 * (path1[wp_indx1][Rw] * path1[wp_indx1][Rz]), 1.0 - 2.0 * (path1[wp_indx1][Rz] * path1[wp_indx1][Rz]));
+
+                    m_Rviz->SetGoalPose(path1[wp_indx1][Px], path1[wp_indx1][Py], yaw);
                 }
-                sleep(5);
-                btnScenario4_clicked();
-                // }
             }
+            if (wp_indx1 >= wp_size1)
+            {
+                if (qnode.m_TopicPacket.m_GoalReached){
+                    timerScenario->stop();
+                    event_flag = 4;
+                    des_ang = des_ang2;
+                    turn_direct = LEFT;
+                    timerTurning->start();
+                }
+            }
+            break;
         }
-    }
-    else if (event_flag == 4)
-    {
-        double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path2[wp_indx2][0], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path2[wp_indx2][1], 2));
-        if (dist <= 0.6)
+        case 6:
         {
-            wp_indx2++;
-            if (wp_indx2 < wp_size2)
+            double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path2[wp_indx2][Px], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path2[wp_indx2][Py], 2));
+            if (dist <= 0.6)
             {
-                double Px = path2[wp_indx2][0];
-                double Py = path2[wp_indx2][1];
-                double Rz = path2[wp_indx2][2];
-                double Rw = path2[wp_indx2][3];
-                double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
+                wp_indx2++;
+                if (wp_indx2 < wp_size2)
+                {
+                    double yaw = atan2(2.0 * (path2[wp_indx2][Rw] * path2[wp_indx2][Rz]), 1.0 - 2.0 * (path2[wp_indx2][Rz] * path2[wp_indx2][Rz]));
 
-                m_Rviz->SetGoalPose(Px, Py, yaw);
+                    m_Rviz->SetGoalPose(path2[wp_indx2][Px], path2[wp_indx2][Py], yaw);
+                }
             }
-            else
-            {
-                double Rz = qnode.m_TopicPacket.m_OdomRz;
-                double Rw = qnode.m_TopicPacket.m_OdomRw;
-                double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-                // double err_z = abs(Rz - qnode.m_TopicPacket.m_AmclRz);
-                // double err_w = abs(Rw - qnode.m_TopicPacket.m_AmclRw);
-                // qDebug() << "err_Z : " + QString::number(err_z);
-                // qDebug() << "err_w : " + QString::number(err_w);
-                // cout << "flag " << event_flag << " yaw : " << yaw << endl;
-                // double Rz = path2[wp_indx2][2];
-                // double err_z = abs(Rz - qnode.m_TopicPacket.m_AmclRz);
-                // qDebug() << "err_Z : " + QString::number(err_z);
-                // if (err_z < 1.25)
-                // {
-                timerScenario->stop();
-                // sleep(5);
-                // btnScenario5_clicked();
-                // }
+            if(wp_indx2 >= wp_size2){
+                if (qnode.m_TopicPacket.m_GoalReached){
+                    timerScenario->stop();
+                    event_flag = 7;
+                    des_ang = des_ang4;
+                    turn_direct = RIGHT;
+                    timerTurning->start();
+                }
             }
+            break;
         }
-    }
-    else if (event_flag == 5)
-    {
-        double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path3[wp_indx3][0], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path3[wp_indx3][1], 2));
-        if (dist <= 0.6)
+        case 8:
         {
-            wp_indx3++;
-            if (wp_indx3 < wp_size3)
+            double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path3[wp_indx3][Px], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path3[wp_indx3][Py], 2));
+            if (dist <= 0.6)
             {
-                double Px = path3[wp_indx3][0];
-                double Py = path3[wp_indx3][1];
-                double Rz = path3[wp_indx3][2];
-                double Rw = path3[wp_indx3][3];
-                double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
+                wp_indx3++;
+                if (wp_indx3 < wp_size3)
+                {
+                    double yaw = atan2(2.0 * (path3[wp_indx3][Rw] * path3[wp_indx3][Rz]), 1.0 - 2.0 * (path3[wp_indx3][Rz] * path3[wp_indx3][Rz]));
 
-                m_Rviz->SetGoalPose(Px, Py, yaw);
+                    m_Rviz->SetGoalPose(path3[wp_indx3][Px], path3[wp_indx3][Py], yaw);
+                }
             }
-            else
-            {
-
-                double Rz = path3[wp_indx3][2];
-                double Rw = path3[wp_indx3][3];
-                double err_z = abs(Rz - qnode.m_TopicPacket.m_AmclRz);
-                double err_w = abs(Rw - qnode.m_TopicPacket.m_AmclRw);
-                // qDebug() << "err_Z : " + QString::number(err_z);
-                // qDebug() << "err_w : " + QString::number(err_w);
-                // if (err_z < 0.05)
-                // {
-                timerScenario->stop();
-                sleep(5);
-                btnDocking_clicked();
-                // }
+            if(wp_indx3 >= wp_size3){
+                if (qnode.m_TopicPacket.m_GoalReached){
+                    timerScenario->stop();
+                    timerDocking->start(10000);
+                }
             }
+            break;
         }
+        default:
+            break;
     }
-}
-
-void MainWindow::btnTest_clicked()
-{
-    double Px = qnode.m_TopicPacket.m_AmclPx;
-    double Py = qnode.m_TopicPacket.m_AmclPy;
-    double Rz = qnode.m_TopicPacket.m_AmclRz;
-    double Rw = qnode.m_TopicPacket.m_AmclRw;
-    double yaw = atan2(2.0 * (Rw * Rz), 1.0 - 2.0 * (Rz * Rz));
-
-    //m_Rviz->SetGoalPose(Px, Py, -3.14);
-    //    m_Rviz->SetGoalPose(Px, Py, ui->lineEdit_3->text().toDouble());
 }
 
 void MainWindow::turning()
 {
-    linear.x = 0.0;
-    linear.y = 0.0;
-    linear.z = 0.0;
-
-    angular.x = 0.0;
-    angular.y = 0.0;
-    angular.z = 1.0;
-
     double yaw = qnode.m_TopicPacket.m_ImuYaw;
 
     double err = yaw - des_ang;
 
-    ROS_INFO("yaw =: [%f], des =: [%f], err =: [%f]", yaw, des_ang, err);
+    // ROS_INFO("yaw =: [%f], des =: [%f], err =: [%f]", yaw, des_ang, err);
 
     if (abs(err) >= 0.05)
     {
-        qnode.KobukiMove(linear, angular);
+        qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, turn_direct == LEFT ? 1.0 : -1.0);
     }
     else
     {
-        angular.z = 0.0;
-        qnode.KobukiMove(linear, angular);
+        qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
         timerTurning->stop();
 
         if (event_flag == 2)
         {
-            btnScenario3_clicked();
+            goGuest();
         }
-        else if (event_flag == 6)
-        {
-            btnScenario4();
+        else if (event_flag == 4){
+            if (connectServer)
+            {
+                QByteArray txData;
+                txData.append(QByteArray::fromRawData("\x02\x05", 2));
+                txData.append(QByteArray::fromRawData("\x02", 1));
+                txData.append(QByteArray::fromRawData("\x0D\x05", 2));
+                m_Client->socket->write(txData);
+            }
+            // btnHomeClicked();
+        }
+        else if(event_flag == 5){
+            goEnd();
+        }
+        else if(event_flag == 7){
+            goHome();
         }
     }
 }
 
-void MainWindow::cbEnableDxl_stateChanged(int state)
+void MainWindow::cbEnableDxlStateChanged(int state)
 {
-    //    qDebug() << state;
     if (state == 2)
     {
         enableDxl = true;
@@ -693,7 +566,7 @@ void MainWindow::cbEnableDxl_stateChanged(int state)
     }
 }
 
-void MainWindow::btnRunDxl_clicked()
+void MainWindow::btnRunDxlClicked()
 {
     if (enableDxl)
     {
@@ -702,7 +575,7 @@ void MainWindow::btnRunDxl_clicked()
     }
 }
 
-void MainWindow::btnDocking_clicked()
+void MainWindow::btnDockingClicked()
 {
     timerDocking->start(1000);
 }
@@ -714,18 +587,11 @@ void MainWindow::docking()
     ROS_INFO("auto docking result : [%d]", dock_state);
     if (dock_state == 1){
         timerDocking->stop();
-        // on_btnSetInitialPose_clicked();
+        on_btnSetInitialPose_clicked();
     }
     else if(dock_state == 2){
-        linear.x = -0.3;
-        linear.y = 0;
-        linear.z = 0;
-
-        angular.x = 0;
-        angular.y = 0;
-        angular.z = 0;
-
-        qnode.KobukiMove(linear, angular);
+        qnode.KobukiMove(-0.3, 0.0, 0.0, 0.0, 0.0, 0.0);
+        timerDocking->start(1000);
     }
 }
 

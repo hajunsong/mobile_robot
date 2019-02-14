@@ -84,26 +84,25 @@ public Q_SLOTS:
 
 private slots:
     void UiUpdate();
-    void update();
-    void btnConnectServer_clicked();
-    void scenarioUpdate();
-    void btnScenario1_clicked();
-    void btnScenario2_clicked();
-    void btnScenario3_clicked();
-    void btnScenario4_clicked();
-    void btnScenario4();
-    void btnScenario5_clicked();
-    void btnScenario5();
-    void btnTest_clicked();
 
+    // Scenario Control Button Event
+    void btnConnectServerClicked();
+    void btnGuestClicked();
+    void btnHomeClicked();
+
+    // Tcp Server Connect & Read Messge
     void onConnectServer();
     void readMessage();
 
-    void cbEnableDxl_stateChanged(int state);
-    void btnRunDxl_clicked();
+    // Dynamixel Motor Control
+    void cbEnableDxlStateChanged(int state);
+    void btnRunDxlClicked();
 
-    void btnDocking_clicked();
+    // Auto Docking Button Event
+    void btnDockingClicked();
 
+    // Timer timeout signal recevie slots
+    void scenarioUpdate();
     void turning();
     void docking();
 
@@ -118,10 +117,8 @@ private:
     QStandardItemModel      *modelMain;
 
     TcpClient               *m_Client;
-    VelCmd                  linear, angular;
 
     QTimer                  *timerUIUpdate;
-    QTimer                  *timerUpdate;
     QTimer                  *timerScenario;
     QTimer                  *timerTurning;
     QTimer                  *timerDocking;
@@ -132,11 +129,20 @@ private:
     double                  des_ang;
 
     bool                    enableDxl;
+    bool                    connectServer;
     DxlControl              *dxlControl;
     bool                    init_flag;
 
     AutoDockingROS          *autoDocking;
 
+    int                     turn_direct;
+
+    void goGuest();
+    void goEnd();
+    void goHome();
+
+    enum {Px, Py, Rz, Rw};
+    enum {LEFT=1, RIGHT};
 };
 
 }  // namespace robomap

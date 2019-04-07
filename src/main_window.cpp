@@ -148,6 +148,9 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
 
     serviceImage = new QLabel(backgroundWidget);
     serviceImage->setGeometry(backgroundWidget->rect());
+
+    on_button_connect_clicked(true);
+    btnConnectServerClicked();
 }
 
 MainWindow::~MainWindow()

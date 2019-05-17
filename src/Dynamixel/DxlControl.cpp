@@ -51,6 +51,8 @@ void DxlControl::dxl_init()
     }
 
     packetHandler->write1ByteTxRx(portHandler, DXL_ID, ADDR_OPERATING_MODE, OPERATING_POSITION_CONTROL, &dxl_error);
+    packetHandler->write4ByteTxRx(portHandler, DXL_ID, ADDR_GOAL_VELOCITY, 7000, &dxl_error);
+    packetHandler->write4ByteTxRx(portHandler, DXL_ID, ADDR_GOAL_ACCELERATION, 100, &dxl_error);
 
     packetHandler->write1ByteTxRx(portHandler, DXL_ID, ADDR_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);
 
@@ -69,7 +71,7 @@ void DxlControl::dxl_deinit()
     packetHandler->write1ByteTxRx(portHandler, DXL_ID, ADDR_TORQUE_ENABLE, TORQUE_DISABLE, &dxl_error);
 
     // Write Dynamixel Operating mode
-    packetHandler->write1ByteTxRx(portHandler, DXL_ID, ADDR_OPERATING_MODE, OPERATING_POSITION_CONTROL, &dxl_error);
+    packetHandler->write1ByteTxRx(portHandler, DXL_ID, ADDR_OPERATING_MODE, OPERATING_EXT_POSITION, &dxl_error);
 
     // Reset home position
     packetHandler->write1ByteTxRx(portHandler, DXL_ID, ADDR_TORQUE_ENABLE, TORQUE_ENABLE, &dxl_error);

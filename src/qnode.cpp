@@ -16,6 +16,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include "../include/mobile_robot/qnode.hpp"
+#include <tf/tf.h>
 
 /*****************************************************************************
 ** Namespaces
@@ -158,12 +159,22 @@ void QNode::PoseCallback(const geometry_msgs::PoseWithCovarianceStamped_<std::al
 {
     m_TopicPacket.m_AmclPx = amcl_pose->pose.pose.position.x;
     m_TopicPacket.m_AmclPy = amcl_pose->pose.pose.position.y;
-    //    m_TopicPacket.m_AmclTheta = amcl_pose->pose.pose.orientation.w;
     m_TopicPacket.m_AmclRz = amcl_pose->pose.pose.orientation.z;
-    m_TopicPacket.m_AmclRw = amcl_pose->pose.pose.orientation.w;
+    m_TopicPacket.m_AmclRw = amcl_pose->pose.pose.orientation.w;    
 
+    tf::Quaternion q(
+        amcl_pose->pose.pose.orientation.x,
+        amcl_pose->pose.pose.orientation.y,
+        amcl_pose->pose.pose.orientation.z,
+        amcl_pose->pose.pose.orientation.w
+    );
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    m_TopicPacket.m_AmclTheta = yaw;
 
-    // ROS_INFO("position =: [%f]", amcl_pose->pose.pose.position.x);
+    // ROS_INFO("position =: [%f, %f, %f]", 
+    //     m_TopicPacket.m_AmclPx, m_TopicPacket.m_AmclPy, m_TopicPacket.m_AmclTheta);
 }
 
 void QNode::OdomCallback(const nav_msgs::Odometry_<std::allocator<void> >::ConstPtr &Odom)

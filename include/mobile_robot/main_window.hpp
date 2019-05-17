@@ -38,6 +38,7 @@
 #include "src/Dynamixel/DxlControl.h"
 
 #include "src/AutoDocking/auto_docking_ros.hpp"
+#include "src/PathTracking/path_tracking.hpp"
 
 using namespace kobuki;
 
@@ -146,6 +147,7 @@ private:
     bool                    init_flag;
 
     AutoDockingROS          *autoDocking;
+    PathTrackingMR          *navi1, *navi2, *navi3;
 
     int                     turn_direct;
 

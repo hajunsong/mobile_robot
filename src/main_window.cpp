@@ -14,36 +14,41 @@
 #include <iostream>
 #include "../include/mobile_robot/main_window.hpp"
 
-double init_pose[4] = {0.057, 0.052, -0.037, 0.999};
+double init_pose[4] = {0.124, 0.102, 0.019, 1.000};
 
-const int wp_size1 = 2;
+const int wp_size1 = 6;
 double path1[wp_size1][4] = {
-    -0.535, 0.181, 0.992, 0.123,
-    -0.739, 0.233, 0.994, 0.107
+    -0.261, 0.259, 0.980, 0.200,
+    -0.230, 0.221, 0.967, 0.255,
+    -0.632, 0.469, 0.950, 0.313,
+    -0.927, 0.694, 0.923, 0.385,
+    -1.217, 1.063, 0.879, 0.476,
+    -1.326, 1.343, 0.779, 0.627
 };
 int wp_indx1 = 0;
 
-const int wp_size2 = 2;
+const int wp_size2 = 3;
 double path2[wp_size2][4] = {
-    -0.977, 0.340, 0.996, 0.084,
-    -1.255, 0.400, 0.996, 0.085
+    -1.501, 2.003, 0.720, 0.694,
+    -1.503, 2.317, 0.635, 0.772,
+    -1.456, 2.680, 0.543, 0.840
 };
 int wp_indx2 = 0;
 
 const int wp_size3 = 4;
 double path3[wp_size3][4] = {
-    -1.015, 0.315, -0.113, 0.994,
-    -0.867, 0.282, -0.095, 0.995,
-    -0.532, 0.215, -0.063, 0.998,
-    -0.196, 0.149, -0.075, 0.997
+    -1.501, 1.846, -0.626, 0.780,
+    -1.226, 1.025, -0.375, 0.927,
+    -0.606, 0.380, -0.007, 1.000,
+    0.104, 0.102, 0.019, 1.000
 };
 int wp_indx3 = 0;
 
 const double D2R = M_PI/180.0;
-const double des_ang1 = 180*D2R;
-const double des_ang2 = -90*D2R;
-const double des_ang3 = 180*D2R;
-const double des_ang4 = 0*D2R;
+const double des_ang1 = 150*D2R;
+const double des_ang2 = -165*D2R;
+const double des_ang3 = 120*D2R;
+const double des_ang4 = -90*D2R;
 
 /*****************************************************************************
 ** Namespaces
@@ -137,6 +142,7 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     connect(timerDocking, SIGNAL(timeout()), this, SLOT(docking()));
 
     autoDocking = new AutoDockingROS("mobile_robot");
+    navi1 = new PathTrackingMR();
 
     ros::NodeHandle n;
     autoDocking->init(n);
@@ -149,6 +155,7 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     serviceImage = new QLabel(backgroundWidget);
     serviceImage->setGeometry(backgroundWidget->rect());
 
+
     on_button_connect_clicked(true);
     btnConnectServerClicked();
 }
@@ -159,6 +166,7 @@ MainWindow::~MainWindow()
     delete m_Client;
     delete dxlControl;
     delete autoDocking;
+    delete navi1;
 }
 
 /*****************************************************************************
@@ -318,13 +326,13 @@ void MainWindow::onConnectServer()
     ui->ipAddress->setDisabled(true);
     ui->portNum->setDisabled(true);
 
-    on_btnSetInitialPose_clicked();
-
     enableDxl = true;
     dxlControl->dxl_init();
     ui->cbEnableDxl->setChecked(enableDxl);
 
     connectServer = true;
+
+    on_btnSetInitialPose_clicked();
 }
 
 void MainWindow::readMessage()
@@ -343,7 +351,7 @@ void MainWindow::readMessage()
             if (ch[2] == 0x01)
             {
                 // qDebug() << "Geust come to front UI Monitor";
-                viewImageSmile();
+                // viewImageSmile();
                 btnGuestClicked();
             }
             else if (ch[2] == 0x00)
@@ -353,7 +361,7 @@ void MainWindow::readMessage()
                 btnHomeClicked();
             }
             else if (ch[2] == 0x02){
-                viewImageWait();
+                // viewImageWait();
             }
         }
     }
@@ -376,9 +384,9 @@ void MainWindow::on_btnSetInitialPose_clicked()
 
     timerScenario->stop();
     timerTurning->stop();
-    timerDocking->stop();
+    // timerDocking->stop();
 
-    viewImageSleep();
+    // viewImageSleep();
 }
 
 void MainWindow::btnGuestClicked()
@@ -406,7 +414,7 @@ void MainWindow::goGuest()
 
 void MainWindow::btnHomeClicked()
 {
-    viewImageSmile();
+    // viewImageSmile();
 
     if (enableDxl)
     {
@@ -444,9 +452,9 @@ void MainWindow::scenarioUpdate()
     {
         case 1:
         {
-            qnode.KobukiMove(-0.15, 0.0, 0.0, 0.0, 0.0, -0.2);
+            qnode.KobukiMove(-0.1, 0.0, 0.0, 0.0, 0.0, -0.2);
             scenarioCnt++;
-            if (scenarioCnt > 30)
+            if (scenarioCnt > 60)
             {
                 timerScenario->stop();
                 event_flag = 2;
@@ -458,6 +466,21 @@ void MainWindow::scenarioUpdate()
         }
         case 3:
         {
+            // double vx, wz;
+            // int result = navi1->move(qnode.m_TopicPacket.m_AmclPx, qnode.m_TopicPacket.m_AmclPy, &vx, &wz);
+
+            // qnode.KobukiMove(vx, 0.0, 0.0, 0.0, 0.0, wz);
+
+            // if (result == 1){
+            //     timerScenario->stop();
+            //     event_flag = 4;
+            //     des_ang = des_ang2;
+            //     turn_direct = LEFT;
+            //     timerTurning->start();
+            // }
+
+            // ros::NodeHandle nh("~");
+            // nh.param("move_base/DWAPlannerROS/local_plan min_vel_x", 0.5);
             double dist = sqrt(pow(qnode.m_TopicPacket.m_AmclPx - path1[wp_indx1][Px], 2) + pow(qnode.m_TopicPacket.m_AmclPy - path1[wp_indx1][Py], 2));
             if (dist <= 0.6)
             {
@@ -519,9 +542,13 @@ void MainWindow::scenarioUpdate()
                 }
             }
             if(wp_indx3 >= wp_size3){
+                // ROS_INFO("wp_indx3 : [%d]", wp_indx3);
+                sleep(1);
                 if (qnode.m_TopicPacket.m_GoalReached){
                     timerScenario->stop();
-                    docking();
+                    // docking();
+                    // timerDocking->start(100);
+                    btnDockingClicked();
                 }
             }
             break;
@@ -561,8 +588,8 @@ void MainWindow::turning()
                 txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                 m_Client->socket->write(txData);
             }
-            viewImageWink();
-            // btnHomeClicked();
+            // viewImageWink();
+            btnHomeClicked();
         }
         else if(event_flag == 5){
             goEnd();
@@ -603,16 +630,17 @@ void MainWindow::btnDockingClicked()
 
 void MainWindow::docking()
 {
+    timerDocking->stop();
+    ROS_INFO("docking start");
     int dock_state = autoDocking->spin();
 
     ROS_INFO("auto docking result : [%d]", dock_state);
     if (dock_state == 1){
-        timerDocking->stop();
         on_btnSetInitialPose_clicked();
     }
     else if(dock_state == 2){
-        qnode.KobukiMove(-0.3, 0.0, 0.0, 0.0, 0.0, 0.0);
-        timerDocking->start(100);
+        qnode.KobukiMove(-0.25, 0.0, 0.0, 0.0, 0.0, 0.0);
+        btnDockingClicked();
     }
 }
 
@@ -622,7 +650,7 @@ void MainWindow::viewImageSmile(){
     backgroundWidget->show();
     labelDrawImage(
         serviceImage, 
-        "/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/smile.png", 
+        "/root/catkin_ws/src/mobile_robot/resources/images/smile.png", 
         1.5
     );
 }
@@ -633,7 +661,7 @@ void MainWindow::viewImageWink(){
     backgroundWidget->show();
     labelDrawImage(
         serviceImage, 
-        "/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/wink.jpg", 
+        "/root/catkin_ws/src/mobile_robot/resources/images/wink.jpg", 
         2.0
     );
 }
@@ -644,7 +672,7 @@ void MainWindow::viewImageSleep(){
     backgroundWidget->show();
     labelDrawImage(
         serviceImage, 
-        "/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/sleep.jpg", 
+        "/root/catkin_ws/src/mobile_robot/resources/images/sleep.jpg", 
         1.0
     );
 }
@@ -653,7 +681,7 @@ void MainWindow::viewImageWait(){
     ui->centralwidget->hide();
     ui->dock_status->close();
     backgroundWidget->show();
-    QMovie *movie = new QMovie("/home/turtlebot/catkin_ws/src/mobile_robot/resources/images/wait.gif");
+    QMovie *movie = new QMovie("/root/catkin_ws/src/mobile_robot/resources/images/wait.gif");
     QSize movieSize;
     movieSize.setWidth(serviceImage->width()*0.5);
     movieSize.setHeight(serviceImage->height()*0.8);

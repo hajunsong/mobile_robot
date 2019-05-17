@@ -50,6 +50,7 @@ struct CTopicPacket
 	double m_AmclPy;
 	double m_AmclRz;
 	double m_AmclRw;
+	double m_AmclTheta;
 
 	double m_ImuRx;
 	double m_ImuRy;

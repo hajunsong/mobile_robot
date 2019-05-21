@@ -141,11 +141,11 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     timerDocking = new QTimer(this);
     connect(timerDocking, SIGNAL(timeout()), this, SLOT(docking()));
 
-    autoDocking = new AutoDockingROS("mobile_robot");
-    navi1 = new PathTrackingMR();
+    // autoDocking = new AutoDockingROS("mobile_robot");
+    // navi1 = new PathTrackingMR();
 
-    ros::NodeHandle n;
-    autoDocking->init(n);
+    // ros::NodeHandle n;
+    // autoDocking->init(n);
 
     backgroundWidget = new QWidget(this);
     backgroundWidget->setFixedSize(1280, 800);
@@ -155,6 +155,7 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     serviceImage = new QLabel(backgroundWidget);
     serviceImage->setGeometry(backgroundWidget->rect());
 
+    flag = false;
 
     on_button_connect_clicked(true);
     btnConnectServerClicked();
@@ -165,8 +166,8 @@ MainWindow::~MainWindow()
     timerUIUpdate->stop();
     delete m_Client;
     delete dxlControl;
-    delete autoDocking;
-    delete navi1;
+    // delete autoDocking;
+    // delete navi1;
 }
 
 /*****************************************************************************
@@ -351,17 +352,17 @@ void MainWindow::readMessage()
             if (ch[2] == 0x01)
             {
                 // qDebug() << "Geust come to front UI Monitor";
-                // viewImageSmile();
+                viewImageSmile();
                 btnGuestClicked();
             }
             else if (ch[2] == 0x00)
             {
                 // qDebug() << "Geust leaved";
-                // viewImageWink();
+                viewImageWink();
                 btnHomeClicked();
             }
             else if (ch[2] == 0x02){
-                // viewImageWait();
+                viewImageWait();
             }
         }
     }
@@ -385,8 +386,11 @@ void MainWindow::on_btnSetInitialPose_clicked()
     timerScenario->stop();
     timerTurning->stop();
     // timerDocking->stop();
+    flag = true;
 
-    // viewImageSleep();
+    viewImageSleep();
+
+    qnode.ResetOdom();
 }
 
 void MainWindow::btnGuestClicked()
@@ -414,7 +418,7 @@ void MainWindow::goGuest()
 
 void MainWindow::btnHomeClicked()
 {
-    // viewImageSmile();
+    viewImageSmile();
 
     if (enableDxl)
     {
@@ -588,8 +592,8 @@ void MainWindow::turning()
                 txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                 m_Client->socket->write(txData);
             }
-            // viewImageWink();
-            btnHomeClicked();
+            viewImageWink();
+            // btnHomeClicked();
         }
         else if(event_flag == 5){
             goEnd();
@@ -625,22 +629,32 @@ void MainWindow::btnRunDxlClicked()
 
 void MainWindow::btnDockingClicked()
 {
-    timerDocking->start(100);
+    docking();
 }
 
 void MainWindow::docking()
 {
-    timerDocking->stop();
+    AutoDockingROS autoDocking("mobile_robot");
+
+    ros::NodeHandle n;
+    autoDocking.init(n);
+
+    // timerDocking->stop();
     ROS_INFO("docking start");
-    int dock_state = autoDocking->spin();
+    int dock_state = autoDocking.spin();
 
     ROS_INFO("auto docking result : [%d]", dock_state);
     if (dock_state == 1){
+         QByteArray txData;
+        txData.append(QByteArray::fromRawData("\x02\x05", 2));
+        txData.append(QByteArray::fromRawData("\x05", 1));
+        txData.append(QByteArray::fromRawData("\x0D\x05", 2));
+        m_Client->socket->write(txData);
         on_btnSetInitialPose_clicked();
     }
     else if(dock_state == 2){
-        qnode.KobukiMove(-0.25, 0.0, 0.0, 0.0, 0.0, 0.0);
-        btnDockingClicked();
+        qnode.KobukiMove(-0.3, 0.0, 0.0, 0.0, 0.0, 0.0);
+        docking();
     }
 }
 

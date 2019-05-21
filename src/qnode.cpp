@@ -92,6 +92,7 @@ bool QNode::init(const std::string &master_url, const std::string &host_url)
         imu_subscriber = n.subscribe("mobile_base/sensors/imu_data", 3000, &QNode::ImuCallback, this);
         dock_subscriber = n.subscribe("mobile_base/sensors/dock_ir", 3000, &QNode::DockCallback, this);
         goal_subscriber = n.subscribe("move_base/status", 100, &QNode::GoalCallback, this);
+        odom_publisher = n.advertise<std_msgs::Empty>("/mobile_base/commands/reset_odometry", 10);
 
         start();
     }
@@ -201,6 +202,11 @@ void QNode::KobukiMove(double vx, double vy, double vz, double wx, double wy, do
 
     //publish the assembled command
     cmd_vel_publisher.publish(cmd);
+}
+
+void QNode::ResetOdom(){
+    std_msgs::Empty msgs;
+    odom_publisher.publish(msgs);
 }
 
 void QNode::ImuCallback(const sensor_msgs::Imu_<std::allocator<void> >::ConstPtr &imu){

@@ -32,6 +32,7 @@
 #include "sensor_msgs/Imu.h"
 #include "kobuki_msgs/DockInfraRed.h"
 #include "actionlib_msgs/GoalStatusArray.h"
+#include "std_msgs/Empty.h"
 
 #include <iostream>
 using namespace std;
@@ -109,6 +110,7 @@ public:
 	void ImuCallback(const sensor_msgs::Imu::ConstPtr &imu);
 	void DockCallback(const kobuki_msgs::DockInfraRed::ConstPtr &dock);
 	void GoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr &goal);
+	void ResetOdom();
 
 public:
 	CTopicPacket *GetTopicPacket();
@@ -136,6 +138,7 @@ private:
 	ros::Subscriber imu_subscriber;
 	ros::Subscriber dock_subscriber;
 	ros::Subscriber goal_subscriber;
+	ros::Publisher odom_publisher;
 
 private:
 	QString _SystemMsg;

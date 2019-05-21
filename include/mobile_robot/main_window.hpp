@@ -160,6 +160,8 @@ private:
 
     QLabel                  *serviceImage;
     QWidget                 *backgroundWidget;
+
+    bool flag;
 };
 
 }  // namespace robomap

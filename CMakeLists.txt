@@ -13,7 +13,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 # qt_build provides the qt cmake glue, roscpp the comms for a default talker
 find_package(catkin REQUIRED COMPONENTS rviz roscpp rospy nodelet pluginlib message_filters actionlib kdl_conversions
-                                        ecl_threads ecl_geometry ecl_linear_algebra kobuki_msgs kobuki_dock_drive nav_msgs)
+                                        ecl_threads ecl_geometry ecl_linear_algebra kobuki_msgs kobuki_dock_drive nav_msgs dynamic_reconfigure)
 
 find_package(Qt5 REQUIRED Core Widgets Network)
 set(QT_LIBRARIES Qt5::Widgets)

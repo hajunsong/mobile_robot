@@ -108,6 +108,7 @@ public:
 	void ImuCallback(const sensor_msgs::Imu::ConstPtr &imu);
 	void DockCallback(const kobuki_msgs::DockInfraRed::ConstPtr &dock);
 	void GoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr &goal);
+	void VelCallback(const geometry_msgs::Twist::ConstPtr &goal);
 
 public:
 	CTopicPacket *GetTopicPacket();
@@ -132,9 +133,11 @@ private:
 	QStringListModel logging_model;
 
 	ros::Publisher cmd_vel_publisher;
+	ros::Subscriber cmd_vel_subscriber;
 	ros::Subscriber imu_subscriber;
 	ros::Subscriber dock_subscriber;
 	ros::Subscriber goal_subscriber;
+
 
 private:
 	QString _SystemMsg;

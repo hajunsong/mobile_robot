@@ -14,30 +14,31 @@
 #include <iostream>
 #include "../include/mobile_robot/main_window.hpp"
 
-double init_pose[4] = {0.057, 0.052, -0.037, 0.999};
+double init_pose[4] = {0.299, 0.144, 0.000, 1.000};
 
-const int wp_size1 = 2;
+const uint wp_size1 = 1;
 double path1[wp_size1][4] = {
-    -0.535, 0.181, 0.992, 0.123,
-    -0.739, 0.233, 0.994, 0.107
+    -0.519, 0.038, 1.000, 0.000
+    // -0.739, 0.233, 0.994, 0.107
 };
-int wp_indx1 = 0;
+uint wp_indx1 = 0;
 
-const int wp_size2 = 2;
+const uint wp_size2 = 1;
 double path2[wp_size2][4] = {
-    -0.977, 0.340, 0.996, 0.084,
-    -1.255, 0.400, 0.996, 0.085
+    -1.042, 0.034, 1.000, 0.002
+    // -1.255, 0.400, 0.996, 0.085
 };
-int wp_indx2 = 0;
+uint wp_indx2 = 0;
 
-const int wp_size3 = 4;
+
+const uint wp_size3 = 3;
 double path3[wp_size3][4] = {
-    -1.015, 0.315, -0.113, 0.994,
-    -0.867, 0.282, -0.095, 0.995,
-    -0.532, 0.215, -0.063, 0.998,
-    -0.196, 0.149, -0.075, 0.997
+    -0.563, 0.012, -0.002, 1.000,
+    -0.188, 0.008, 0.010, 1.000,
+    -0.052, 0.018, 0.000, 1.000
+    // -0.196, 0.149, -0.075, 0.997
 };
-int wp_indx3 = 0;
+uint wp_indx3 = 0;
 
 const double D2R = M_PI/180.0;
 const double des_ang1 = 180*D2R;
@@ -150,14 +151,14 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     serviceImage->setGeometry(backgroundWidget->rect());
 
     on_button_connect_clicked(true);
-    btnConnectServerClicked();
+    // btnConnectServerClicked();
 }
 
 MainWindow::~MainWindow()
 {
     timerUIUpdate->stop();
     delete m_Client;
-    delete dxlControl;
+    // delete dxlControl;
     delete autoDocking;
 }
 
@@ -318,11 +319,11 @@ void MainWindow::onConnectServer()
     ui->ipAddress->setDisabled(true);
     ui->portNum->setDisabled(true);
 
-    on_btnSetInitialPose_clicked();
+    // on_btnSetInitialPose_clicked();
 
-    enableDxl = true;
-    dxlControl->dxl_init();
-    ui->cbEnableDxl->setChecked(enableDxl);
+    // enableDxl = true;
+    // dxlControl->dxl_init();
+    // ui->cbEnableDxl->setChecked(enableDxl);
 
     connectServer = true;
 }
@@ -343,17 +344,29 @@ void MainWindow::readMessage()
             if (ch[2] == 0x01)
             {
                 // qDebug() << "Geust come to front UI Monitor";
-                viewImageSmile();
-                btnGuestClicked();
+                // viewImageSmile();
+                // btnGuestClicked();
+
+                QByteArray txData;
+                txData.append(QByteArray::fromRawData("\x02\x05", 2));
+                txData.append(QByteArray::fromRawData("\x02", 1));
+                txData.append(QByteArray::fromRawData("\x0D\x05", 2));
+                m_Client->socket->write(txData);
             }
             else if (ch[2] == 0x00)
             {
                 // qDebug() << "Geust leaved";
                 // viewImageWink();
-                btnHomeClicked();
+                // btnHomeClicked();
+                sleep(3);
+                QByteArray txData;
+                txData.append(QByteArray::fromRawData("\x02\x05", 2));
+                txData.append(QByteArray::fromRawData("\x05", 1));
+                txData.append(QByteArray::fromRawData("\x0D\x05", 2));
+                m_Client->socket->write(txData);
             }
             else if (ch[2] == 0x02){
-                viewImageWait();
+                // viewImageWait();
             }
         }
     }
@@ -378,7 +391,7 @@ void MainWindow::on_btnSetInitialPose_clicked()
     timerTurning->stop();
     timerDocking->stop();
 
-    viewImageSleep();
+    // viewImageSleep();
 }
 
 void MainWindow::btnGuestClicked()
@@ -406,7 +419,7 @@ void MainWindow::goGuest()
 
 void MainWindow::btnHomeClicked()
 {
-    viewImageSmile();
+    // viewImageSmile();
 
     if (enableDxl)
     {
@@ -444,7 +457,7 @@ void MainWindow::scenarioUpdate()
     {
         case 1:
         {
-            qnode.KobukiMove(-0.15, 0.0, 0.0, 0.0, 0.0, -0.2);
+            qnode.KobukiMove(-0.15, 0.0, 0.0, 0.0, 0.0, 0.0);
             scenarioCnt++;
             if (scenarioCnt > 30)
             {
@@ -478,6 +491,7 @@ void MainWindow::scenarioUpdate()
                     turn_direct = LEFT;
                     timerTurning->start();
                 }
+                wp_indx1--;
             }
             break;
         }
@@ -502,6 +516,7 @@ void MainWindow::scenarioUpdate()
                     turn_direct = RIGHT;
                     timerTurning->start();
                 }
+                wp_indx2--;
             }
             break;
         }
@@ -521,8 +536,11 @@ void MainWindow::scenarioUpdate()
             if(wp_indx3 >= wp_size3){
                 if (qnode.m_TopicPacket.m_GoalReached){
                     timerScenario->stop();
+                    ROS_INFO("scenario end, docking start");
+                    sleep(1);
                     docking();
                 }
+                wp_indx3--;
             }
             break;
         }
@@ -550,7 +568,7 @@ void MainWindow::turning()
 
         if (event_flag == 2)
         {
-            goGuest();
+            // goGuest();
         }
         else if (event_flag == 4){
             if (connectServer)
@@ -561,8 +579,8 @@ void MainWindow::turning()
                 txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                 m_Client->socket->write(txData);
             }
-            viewImageWink();
-            // btnHomeClicked();
+            // viewImageWink();
+            btnHomeClicked();
         }
         else if(event_flag == 5){
             goEnd();

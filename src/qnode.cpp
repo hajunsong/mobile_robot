@@ -88,9 +88,11 @@ bool QNode::init(const std::string &master_url, const std::string &host_url)
         _SubAmclPoseTopic = n.subscribe("amcl_pose", 1000, &QNode::PoseCallback, this);
 
         cmd_vel_publisher = n.advertise<geometry_msgs::Twist>("/mobile_base/commands/velocity", 10);
+
         imu_subscriber = n.subscribe("mobile_base/sensors/imu_data", 3000, &QNode::ImuCallback, this);
         dock_subscriber = n.subscribe("mobile_base/sensors/dock_ir", 3000, &QNode::DockCallback, this);
         goal_subscriber = n.subscribe("move_base/status", 100, &QNode::GoalCallback, this);
+        cmd_vel_subscriber = n.subscribe("/mobile_base/commands/velocity", 100, &QNode::VelCallback, this);
 
         start();
     }
@@ -190,6 +192,7 @@ void QNode::KobukiMove(double vx, double vy, double vz, double wx, double wy, do
 
     //publish the assembled command
     cmd_vel_publisher.publish(cmd);
+    // smooth_vel_pub.publish(cmd);
 }
 
 void QNode::ImuCallback(const sensor_msgs::Imu_<std::allocator<void> >::ConstPtr &imu){
@@ -221,6 +224,10 @@ void QNode::GoalCallback(const actionlib_msgs::GoalStatusArray_<std::allocator<v
         // ROS_INFO("Goal Status : %d", m_TopicPacket.m_GoalReached);
     }
 
+}
+
+void QNode::VelCallback(const geometry_msgs::Twist_<std::allocator<void> >::ConstPtr &vel){
+    // ROS_INFO("%f", vel->linear.x);
 }
 
 CTopicPacket* QNode::GetTopicPacket()

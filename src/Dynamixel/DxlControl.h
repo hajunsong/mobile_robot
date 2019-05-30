@@ -17,25 +17,29 @@ using namespace std;
 
 // Control table address
 enum{Red=513, Green, Blue};
-constexpr auto ADDR_TORQUE_ENABLE = 512;
-constexpr auto ADDR_GOAL_POSITION = 564;
-constexpr auto ADDR_PRESENT_POSITION = 580;
+constexpr auto ADDR_TORQUE_ENABLE = 562;
+constexpr auto ADDR_GOAL_POSITION = 596;
+constexpr auto ADDR_GOAL_VELOCITY = 600;
+constexpr auto ADDR_GOAL_ACCELERATION = 606;
+constexpr auto ADDR_PRESENT_POSITION = 611;
 constexpr auto ADDR_OPERATING_MODE = 11;
-constexpr auto ADDR_LED_RED = 513;
-constexpr auto ADDR_LED_GREEN = 514;
-constexpr auto ADDR_LED_BLUE = 515;
+constexpr auto ADDR_LED_RED = 563;
+constexpr auto ADDR_LED_GREEN = 564;
+constexpr auto ADDR_LED_BLUE = 565;
+constexpr auto ADDR_POSITION_P_GAIN = 594;
 
 // Protocol version
 constexpr auto PROTOCOL_VERSION = 2.0;
 
 // Default setting
 constexpr auto DXL_ID = 1;		// Is different in Dynamixel
-constexpr auto BAUDRATE = 57600;	// Is different in Dynamixel
+constexpr auto BAUDRATE = 4000000;	// Is different in Dynamixel
 constexpr auto DEVICENAME = "/dev/ttyUSB0";	// Is different in PC
 
 constexpr auto TORQUE_ENABLE = 1;
 constexpr auto TORQUE_DISABLE = 0;
 constexpr auto OPERATING_POSITION_CONTROL = 3;
+constexpr auto OPERATING_EXT_POSITION = 4;
 
 class DxlControl
 {

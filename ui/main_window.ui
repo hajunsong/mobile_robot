@@ -642,7 +642,7 @@
         </rect>
        </property>
        <property name="text">
-        <string>192.168.35.153</string>
+        <string>192.168.173.1</string>
        </property>
       </widget>
       <widget class="QLineEdit" name="portNum">

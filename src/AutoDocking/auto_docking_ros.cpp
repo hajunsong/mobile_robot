@@ -86,17 +86,19 @@ int AutoDockingROS::spin()
 
     int return_value = 1;
     // Monitor progress
-    while (!docking_ac.waitForResult(ros::Duration(3))) {
+    int wait_time = 10;
+    while (!docking_ac.waitForResult(ros::Duration(20))) {
 
         dock_state = docking_ac.getState();
         ROS_INFO("Docking status: %s",dock_state.toString().c_str());
 
-        if (ros::Time::now() > (time+ros::Duration(10))) {
+        if (ros::Time::now() > (time+ros::Duration(wait_time))) {
             ROS_INFO("Docking took more than 10 seconds, canceling.");
             docking_ac.cancelGoal();
             return_value = 2;
             break;
         }// end if
+
     }// end while
 
     return return_value;

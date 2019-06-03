@@ -16,6 +16,7 @@
 #include <std_msgs/String.h>
 #include <sstream>
 #include "../include/mobile_robot/qnode.hpp"
+#include <tf/tf.h>
 
 /*****************************************************************************
 ** Namespaces
@@ -92,7 +93,7 @@ bool QNode::init(const std::string &master_url, const std::string &host_url)
         imu_subscriber = n.subscribe("mobile_base/sensors/imu_data", 3000, &QNode::ImuCallback, this);
         dock_subscriber = n.subscribe("mobile_base/sensors/dock_ir", 3000, &QNode::DockCallback, this);
         goal_subscriber = n.subscribe("move_base/status", 100, &QNode::GoalCallback, this);
-        cmd_vel_subscriber = n.subscribe("/mobile_base/commands/velocity", 100, &QNode::VelCallback, this);
+        odom_publisher = n.advertise<std_msgs::Empty>("/mobile_base/commands/reset_odometry", 10);
 
         start();
     }
@@ -160,12 +161,22 @@ void QNode::PoseCallback(const geometry_msgs::PoseWithCovarianceStamped_<std::al
 {
     m_TopicPacket.m_AmclPx = amcl_pose->pose.pose.position.x;
     m_TopicPacket.m_AmclPy = amcl_pose->pose.pose.position.y;
-    //    m_TopicPacket.m_AmclTheta = amcl_pose->pose.pose.orientation.w;
     m_TopicPacket.m_AmclRz = amcl_pose->pose.pose.orientation.z;
-    m_TopicPacket.m_AmclRw = amcl_pose->pose.pose.orientation.w;
+    m_TopicPacket.m_AmclRw = amcl_pose->pose.pose.orientation.w;    
 
+    tf::Quaternion q(
+        amcl_pose->pose.pose.orientation.x,
+        amcl_pose->pose.pose.orientation.y,
+        amcl_pose->pose.pose.orientation.z,
+        amcl_pose->pose.pose.orientation.w
+    );
+    tf::Matrix3x3 m(q);
+    double roll, pitch, yaw;
+    m.getRPY(roll, pitch, yaw);
+    m_TopicPacket.m_AmclTheta = yaw;
 
-    // ROS_INFO("position =: [%f]", amcl_pose->pose.pose.position.x);
+    // ROS_INFO("position =: [%f, %f, %f]", 
+    //     m_TopicPacket.m_AmclPx, m_TopicPacket.m_AmclPy, m_TopicPacket.m_AmclTheta);
 }
 
 void QNode::OdomCallback(const nav_msgs::Odometry_<std::allocator<void> >::ConstPtr &Odom)
@@ -193,6 +204,11 @@ void QNode::KobukiMove(double vx, double vy, double vz, double wx, double wy, do
     //publish the assembled command
     cmd_vel_publisher.publish(cmd);
     // smooth_vel_pub.publish(cmd);
+}
+
+void QNode::ResetOdom(){
+    std_msgs::Empty msgs;
+    odom_publisher.publish(msgs);
 }
 
 void QNode::ImuCallback(const sensor_msgs::Imu_<std::allocator<void> >::ConstPtr &imu){
@@ -226,9 +242,9 @@ void QNode::GoalCallback(const actionlib_msgs::GoalStatusArray_<std::allocator<v
 
 }
 
-void QNode::VelCallback(const geometry_msgs::Twist_<std::allocator<void> >::ConstPtr &vel){
-    // ROS_INFO("%f", vel->linear.x);
-}
+// void QNode::VelCallback(const geometry_msgs::Twist_<std::allocator<void> >::ConstPtr &vel){
+//     // ROS_INFO("%f", vel->linear.x);
+// }
 
 CTopicPacket* QNode::GetTopicPacket()
 {

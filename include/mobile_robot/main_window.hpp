@@ -38,6 +38,7 @@
 #include "src/Dynamixel/DxlControl.h"
 
 #include "src/AutoDocking/auto_docking_ros.hpp"
+#include "src/PathTracking/path_tracking.hpp"
 
 using namespace kobuki;
 
@@ -133,7 +134,7 @@ private:
     QTimer                  *timerUIUpdate;
     QTimer                  *timerScenario;
     QTimer                  *timerTurning;
-    QTimer                  *timerDocking;
+    // QTimer                  *timerDocking;
 
     int                     scenarioCnt;
     bool                    guestCome;
@@ -145,7 +146,8 @@ private:
     DxlControl              *dxlControl;
     bool                    init_flag;
 
-    AutoDockingROS          *autoDocking;
+    // AutoDockingROS          *autoDocking;
+    // PathTrackingMR          *navi1, *navi2, *navi3;
 
     int                     turn_direct;
 
@@ -158,6 +160,8 @@ private:
 
     QLabel                  *serviceImage;
     QWidget                 *backgroundWidget;
+
+    bool flag;
 };
 
 }  // namespace robomap

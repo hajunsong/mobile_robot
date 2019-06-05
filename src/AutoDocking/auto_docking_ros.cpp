@@ -12,8 +12,10 @@
 
 #include "auto_docking_ros.hpp"
 
+
 namespace kobuki
 {
+
 
 //AutoDockingROS::AutoDockingROS()
 AutoDockingROS::AutoDockingROS(std::string name)
@@ -84,22 +86,24 @@ int AutoDockingROS::spin()
 
     ros::Time time = ros::Time::now();
 
+    dock_state = docking_ac.getState();
+
     int return_value = 1;
-    // Monitor progress
     int wait_time = 10;
-    while (!docking_ac.waitForResult(ros::Duration(20))) {
+    while (!docking_ac.waitForResult(ros::Duration(20)))
+    {
 
         dock_state = docking_ac.getState();
-        ROS_INFO("Docking status: %s",dock_state.toString().c_str());
+        ROS_INFO("Docking status: %s", dock_state.toString().c_str());
 
-        if (ros::Time::now() > (time+ros::Duration(wait_time))) {
+        if (ros::Time::now() > (time + ros::Duration(wait_time)))
+        {
             ROS_INFO("Docking took more than 10 seconds, canceling.");
             docking_ac.cancelGoal();
             return_value = 2;
             break;
-        }// end if
-
-    }// end while
+        } // end if
+    } // end while
 
     return return_value;
 }

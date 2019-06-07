@@ -111,6 +111,7 @@ private slots:
     void scenarioUpdate();
     void turning();
     void docking();
+    void tcpWaitTimeout();
 
     // Service Image Viewer
     void viewImageSmile();
@@ -134,7 +135,7 @@ private:
     QTimer                  *timerUIUpdate;
     QTimer                  *timerScenario;
     QTimer                  *timerTurning;
-    // QTimer                  *timerDocking;
+    QTimer                  *timerDocking;
 
     int                     scenarioCnt;
     bool                    guestCome;
@@ -162,6 +163,11 @@ private:
     QWidget                 *backgroundWidget;
 
     bool flag;
+
+    AutoDockingROS *autoDocking;
+    actionlib::SimpleActionClient<kobuki_msgs::AutoDockingAction> *docking_ac;
+    int countDocking = 0;
+    QTimer                  *tcpWaitTimer;
 };
 
 }  // namespace robomap

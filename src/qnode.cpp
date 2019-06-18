@@ -94,6 +94,8 @@ bool QNode::init(const std::string &master_url, const std::string &host_url)
         dock_subscriber = n.subscribe("mobile_base/sensors/dock_ir", 3000, &QNode::DockCallback, this);
         goal_subscriber = n.subscribe("move_base/status", 100, &QNode::GoalCallback, this);
         odom_publisher = n.advertise<std_msgs::Empty>("/mobile_base/commands/reset_odometry", 10);
+        bumper_subscriber = n.subscribe("mobile_base/events/bumper", 1000, &QNode::BumperCallback, this);
+        cancel_publisher = n.advertise<actionlib_msgs::GoalID>("/move_base/cancel", 1);
 
         start();
     }
@@ -240,6 +242,41 @@ void QNode::GoalCallback(const actionlib_msgs::GoalStatusArray_<std::allocator<v
         // ROS_INFO("Goal Status : %d", m_TopicPacket.m_GoalReached);
     }
 
+}
+
+void QNode::BumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &bumper){
+    m_TopicPacket.m_BumperL = false;
+    m_TopicPacket.m_BumperC = false;
+    m_TopicPacket.m_BumperR = false;
+    m_TopicPacket.m_BumperState = false;
+
+    // ROS_INFO("bumper = %d, state = %d", bumper->bumper, bumper->state);
+
+    m_TopicPacket.m_Bumper = bumper->bumper;
+    m_TopicPacket.m_BumperState = bumper->state;
+
+    switch(bumper->bumper){
+        case 0:
+            m_TopicPacket.m_BumperL = bumper->state;
+            ROS_INFO("Bumper Left : %d", m_TopicPacket.m_BumperL);
+            break;
+        case 1:
+            m_TopicPacket.m_BumperC = bumper->state;
+            ROS_INFO("Bumper Center : %d", m_TopicPacket.m_BumperC);
+            break;
+        case 2:
+            m_TopicPacket.m_BumperR = bumper->state;
+            ROS_INFO("Bumper Right : %d", m_TopicPacket.m_BumperR);
+            break;
+        default : 
+            break;
+    }
+}
+
+void QNode::CancelGoal()
+{
+    actionlib_msgs::GoalID goal;
+    cancel_publisher.publish(goal);
 }
 
 // void QNode::VelCallback(const geometry_msgs::Twist_<std::allocator<void> >::ConstPtr &vel){

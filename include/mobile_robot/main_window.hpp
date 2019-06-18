@@ -112,6 +112,7 @@ private slots:
     void turning();
     void docking();
     void tcpWaitTimeout();
+    void bumperCheck();
 
     // Service Image Viewer
     void viewImageSmile();
@@ -136,6 +137,8 @@ private:
     QTimer                  *timerScenario;
     QTimer                  *timerTurning;
     QTimer                  *timerDocking;
+    QTimer                  *timerTcpWait;
+    QTimer                  *timerBumper;
 
     int                     scenarioCnt;
     bool                    guestCome;
@@ -167,7 +170,10 @@ private:
     AutoDockingROS *autoDocking;
     actionlib::SimpleActionClient<kobuki_msgs::AutoDockingAction> *docking_ac;
     int countDocking = 0;
-    QTimer                  *tcpWaitTimer;
+
+    bool AutoDriveFlag;
+
+    void emergencyStop();
 };
 
 }  // namespace robomap

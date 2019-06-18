@@ -156,10 +156,18 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     ros::NodeHandle n;
     autoDocking->init(n);
 
-    tcpWaitTimer = new QTimer(this);
-    tcpWaitTimer->setInterval(2*60000);
-    connect(tcpWaitTimer, SIGNAL(timeout()), this, SLOT(tcpWaitTimeout()));
-    tcpWaitTimer->start();
+    timerTcpWait = new QTimer(this);
+    timerTcpWait->setInterval(2*60000);
+    connect(timerTcpWait, SIGNAL(timeout()), this, SLOT(tcpWaitTimeout()));
+    timerTcpWait->start();
+
+    AutoDriveFlag = false;
+    // bumper_subscriber = n.subscribe("mobile_base/events/bumper", 1000, &QNode::BumperCallback, this);
+
+    timerBumper = new QTimer(this);
+    timerBumper->setInterval(100);
+    connect(timerBumper, SIGNAL(timeout()), this, SLOT(bumperCheck()));
+    qnode.m_TopicPacket.m_BumperState = false;
 
     on_button_connect_clicked(true);
     btnConnectServerClicked();
@@ -355,7 +363,7 @@ void MainWindow::onConnectServer()
 
 void MainWindow::readMessage()
 {
-    tcpWaitTimer->stop();
+    timerTcpWait->stop();
     QByteArray rxData = m_Client->socket->readAll();
     if (rxData.length() > 0)
     {
@@ -396,7 +404,7 @@ void MainWindow::readMessage()
                             viewImageWait();
                             break;
                         case 6:
-                            tcpWaitTimer->start();
+                            timerTcpWait->start();
                             break;
                         case 7:
                             ROS_INFO("Guest leaved");
@@ -404,10 +412,10 @@ void MainWindow::readMessage()
                             btnHomeClicked();
                             break;
                         case 8:
-                            ROS_INFO("No Guest");
-                            event_flag = 9;
-                            scenarioCnt = 0;
-                            timerScenario->start(50);
+                            // ROS_INFO("No Guest");
+                            // event_flag = 9;
+                            // scenarioCnt = 0;
+                            // timerScenario->start(50);
                         default:
                             break;
                         }
@@ -438,15 +446,16 @@ void MainWindow::on_btnSetInitialPose_clicked()
     timerDocking->stop();
     flag = true;
 
-    viewImageSleep();
+    // viewImageSleep();
 
-    // qnode.ResetOdom();
+    AutoDriveFlag = true;
+    timerBumper->start();
 }
 
 void MainWindow::btnGuestClicked()
 {
 
-    viewImageSmile();
+    // viewImageSmile();
     if (enableDxl)
     {
         dxlControl->moveDxl();
@@ -471,7 +480,7 @@ void MainWindow::goGuest()
 
 void MainWindow::btnHomeClicked()
 {
-    viewImageSmile();
+    // viewImageSmile();
 
     if (enableDxl)
     {
@@ -664,7 +673,7 @@ void MainWindow::turning()
                 txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                 m_Client->socket->write(txData);
             }
-            viewImageWink();
+            // viewImageWink();
             // btnHomeClicked();
         }
         else if (event_flag == 5)
@@ -815,6 +824,25 @@ void MainWindow::labelDrawImage(QLabel *label, QString imagePath, double scale)
 
 void MainWindow::tcpWaitTimeout(){
     btnConnectServerClicked();
+}
+
+
+void MainWindow::bumperCheck(){
+    if (qnode.m_TopicPacket.m_BumperState && countDocking == 0){
+        ROS_INFO("Occurred Bumper Event");
+        emergencyStop();
+    }
+}
+
+void MainWindow::emergencyStop(){
+    timerUIUpdate->stop();
+    timerScenario->stop();
+    timerTurning->stop();
+    timerDocking->stop();
+    timerTcpWait->stop();
+    qnode.CancelGoal();
+    // AutoDriveFlag = false;
+    qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
 }
 
 } // namespace MobileRobot

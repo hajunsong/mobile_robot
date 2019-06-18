@@ -56,53 +56,6 @@ void CreateRviz::SetTopice()
 }
 
 void CreateRviz::SetInitialPose(double Px, double Py, double Th)
-/*
- *position:
-      x: -0.676681313421
-      y: -0.234239122796
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: 0.274648161662
-      w: 0.961544792142
-
-
- pose:
-    position:
-      x: 0.204144161725
-      y: -0.0591819499943
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: 0.21720005391
-      w: 0.976127110873
-
- pose:
-    position:
-      x: 1.00314873185
-      y: -0.07236798109
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: -0.120681040127
-      w: 0.992691334985
-
-
-pose:
-    position:
-      x: 1.93100414919
-      y: -0.811078638227
-      z: 0.0
-    orientation:
-      x: 0.0
-      y: 0.0
-      z: -0.373427062257
-      w: 0.927659543784
-
-*/
 {
     _PubInitialPose = _n.advertise<geometry_msgs::PoseWithCovarianceStamped>
             ("/initialpose", 10);

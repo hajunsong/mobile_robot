@@ -33,6 +33,8 @@
 #include "kobuki_msgs/DockInfraRed.h"
 #include "actionlib_msgs/GoalStatusArray.h"
 #include "std_msgs/Empty.h"
+#include "kobuki_msgs/BumperEvent.h"
+#include "actionlib_msgs/GoalID.h"
 
 #include <iostream>
 using namespace std;
@@ -64,6 +66,12 @@ struct CTopicPacket
 	double m_IrRight;
 
 	bool m_GoalReached;
+
+	int m_Bumper;
+	bool m_BumperL;
+	bool m_BumperC;
+	bool m_BumperR;
+	bool m_BumperState;
 };
 
 /*****************************************************************************
@@ -111,6 +119,8 @@ public:
 	void DockCallback(const kobuki_msgs::DockInfraRed::ConstPtr &dock);
 	void GoalCallback(const actionlib_msgs::GoalStatusArray::ConstPtr &goal);
 	void ResetOdom();
+	void BumperCallback(const kobuki_msgs::BumperEvent::ConstPtr &bumper);
+	void CancelGoal();
 
 public:
 	CTopicPacket *GetTopicPacket();
@@ -140,7 +150,8 @@ private:
 	ros::Subscriber dock_subscriber;
 	ros::Subscriber goal_subscriber;
 	ros::Publisher odom_publisher;
-
+	ros::Subscriber bumper_subscriber;
+	ros::Publisher cancel_publisher;
 
 private:
 	QString _SystemMsg;

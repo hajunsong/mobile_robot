@@ -446,7 +446,7 @@ void MainWindow::on_btnSetInitialPose_clicked()
     timerDocking->stop();
     flag = true;
 
-    // viewImageSleep();
+    viewImageSleep();
 
     AutoDriveFlag = true;
     timerBumper->start();
@@ -480,7 +480,7 @@ void MainWindow::goGuest()
 
 void MainWindow::btnHomeClicked()
 {
-    // viewImageSmile();
+    viewImageSmile();
 
     if (enableDxl)
     {

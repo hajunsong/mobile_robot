@@ -14,36 +14,29 @@
 #include <iostream>
 #include "../include/mobile_robot/main_window.hpp"
 
-double init_pose[4] = {0.031, -0.008, 0.000, 1.000};
+double init_pose[4] = {0.004, -0.042, 0.048, 0.999};
 
 const int wp_size1 = 1;
 double path1[wp_size1][4] = {
-    // -0.433, -0.356, 0.932, -0.364,
-    // -0.561, -0.450, 0.921, -0.389
-    -0.765, -0.369, 0.973, -0.232};
+    -0.596, -0.259, 0.939, -0.343
+};
 uint wp_indx1 = 0;
 
 const int wp_size2 = 1;
 double path2[wp_size2][4] = {
-    // -0.744, -0.608, 0.890, -0.455,
-    // -0.945, -0.884, 0.887, -0.462
-    -1.240, -0.723, 0.982, -0.190};
+    -0.004, -0.042, 0.048, 0.999
+};
 uint wp_indx2 = 0;
 
 const uint wp_size3 = 1;
 double path3[wp_size3][4] = {
-    // -0.515, -0.411, 0.371, 0.929,
-    // 0.035, -0.002, 0.151, 0.989,
-    // -0.074, -0.005, 0.021, 1.000
-    // 0.062, 0.082, -0.022, 1.000,
-    -0.304, -0.013, 0.000, 1.000
-
+    -0.004, -0.042, 0.048, 0.999
 };
 uint wp_indx3 = 0;
 
 const double D2R = M_PI / 180.0;
-const double des_ang1 = -160 * D2R;
-const double des_ang2 = 90 * D2R;
+const double des_ang1 = -173 * D2R;
+const double des_ang2 = 110 * D2R;
 const double des_ang3 = -160 * D2R;
 const double des_ang4 = 30 * D2R;
 
@@ -157,7 +150,7 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     autoDocking->init(n);
 
     timerTcpWait = new QTimer(this);
-    timerTcpWait->setInterval(2*60000);
+    timerTcpWait->setInterval(2 * 60000);
     connect(timerTcpWait, SIGNAL(timeout()), this, SLOT(tcpWaitTimeout()));
     timerTcpWait->start();
 
@@ -165,9 +158,16 @@ MainWindow::MainWindow(int argc, char **argv, QWidget *parent) : QMainWindow(par
     // bumper_subscriber = n.subscribe("mobile_base/events/bumper", 1000, &QNode::BumperCallback, this);
 
     timerBumper = new QTimer(this);
-    timerBumper->setInterval(100);
+    timerBumper->setInterval(10);
     connect(timerBumper, SIGNAL(timeout()), this, SLOT(bumperCheck()));
     qnode.m_TopicPacket.m_BumperState = false;
+
+    timerJoystick = new QTimer(this);
+    timerJoystick->setInterval(10);
+    connect(timerJoystick, SIGNAL(timeout()), this, SLOT(joystickTimeout()));
+    joystick = new Joystick("/dev/input/js0");
+    connect(ui->btnJoystickConnect, SIGNAL(clicked()), timerJoystick, SLOT(start()));
+    move_direction = 0;
 
     on_button_connect_clicked(true);
     btnConnectServerClicked();
@@ -191,6 +191,7 @@ MainWindow::~MainWindow()
     delete m_Rviz;
     delete m_RosLaunch;
     delete m_TopicUpdate;
+    delete joystick;
     delete ui;
 }
 
@@ -352,9 +353,11 @@ void MainWindow::onConnectServer()
     ui->ipAddress->setDisabled(true);
     ui->portNum->setDisabled(true);
 
-    // enableDxl = true;
-    // dxlControl->dxl_init();
-    // ui->cbEnableDxl->setChecked(enableDxl);
+    enableDxl = true;
+    dxlControl->dxl_init();
+    ui->cbEnableDxl->setChecked(enableDxl);
+
+    timerJoystick->start();
 
     connectServer = true;
 
@@ -379,9 +382,10 @@ void MainWindow::readMessage()
             {
                 for (int j = 0; j < len_sub; j++)
                 {
-                    if (rxDataListSub[j].length() > 0)
+                    if (rxDataListSub[j].length() > 0 && AutoDriveFlag)
                     {
                         int data = rxDataListSub[j].at(0);
+                        qDebug() << data;
                         switch (data)
                         {
                         case 0:
@@ -447,6 +451,7 @@ void MainWindow::on_btnSetInitialPose_clicked()
     flag = true;
 
     viewImageSleep();
+    countDocking = 0;
 
     AutoDriveFlag = true;
     timerBumper->start();
@@ -455,7 +460,7 @@ void MainWindow::on_btnSetInitialPose_clicked()
 void MainWindow::btnGuestClicked()
 {
 
-    // viewImageSmile();
+    viewImageSmile();
     if (enableDxl)
     {
         dxlControl->moveDxl();
@@ -488,9 +493,9 @@ void MainWindow::btnHomeClicked()
         dxlControl->setHomePosition();
     }
 
-    event_flag = 5;
-    des_ang = des_ang3;
-    turn_direct = LEFT;
+    event_flag = 7;
+    des_ang = des_ang4;
+    turn_direct = RIGHT;
     timerTurning->start();
 }
 
@@ -524,9 +529,9 @@ void MainWindow::scenarioUpdate()
     {
     case 1:
     {
-        qnode.KobukiMove(-0.1, 0.0, 0.0, 0.0, 0.0, 0.2);
+        qnode.KobukiMove(-0.1, 0.0, 0.0, 0.0, 0.0, 0.0);
         scenarioCnt++;
-        if (scenarioCnt > 45)
+        if (scenarioCnt > 25)
         {
             timerScenario->stop();
             event_flag = 2;
@@ -619,7 +624,6 @@ void MainWindow::scenarioUpdate()
                     txData.append(QByteArray::fromRawData("\x05", 1));
                     txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                     m_Client->socket->write(txData);
-                    m_Client->socket->flush();
                 }
             }
             wp_indx3--;
@@ -673,7 +677,7 @@ void MainWindow::turning()
                 txData.append(QByteArray::fromRawData("\x0D\x05", 2));
                 m_Client->socket->write(txData);
             }
-            // viewImageWink();
+            viewImageWink();
             // btnHomeClicked();
         }
         else if (event_flag == 5)
@@ -728,6 +732,7 @@ void MainWindow::btnDockingClicked()
     // Send the goal
     docking_ac->sendGoal(goal);
 
+    countDocking = 0;
     timerDocking->start();
 }
 
@@ -751,9 +756,10 @@ void MainWindow::docking()
     }
     else
     {
-        if (countDocking >= 25){
+        if (countDocking >= 30)
+        {
             docking_ac->cancelGoal();
-            qnode.KobukiMove(0.0,0.0,0.0,0.0,0.0,0.0);
+            qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
             on_btnSetInitialPose_clicked();
         }
     }
@@ -765,9 +771,9 @@ void MainWindow::viewImageSmile()
     ui->dock_status->close();
     backgroundWidget->show();
     labelDrawImage(
-        serviceImage,
-        "/root/catkin_ws/src/mobile_robot/resources/images/smile.png",
-        1.5);
+                serviceImage,
+                "/root/catkin_ws/src/mobile_robot/resources/images/smile.png",
+                1.5);
 }
 
 void MainWindow::viewImageWink()
@@ -776,9 +782,9 @@ void MainWindow::viewImageWink()
     ui->dock_status->close();
     backgroundWidget->show();
     labelDrawImage(
-        serviceImage,
-        "/root/catkin_ws/src/mobile_robot/resources/images/wink.jpg",
-        2.0);
+                serviceImage,
+                "/root/catkin_ws/src/mobile_robot/resources/images/wink.jpg",
+                2.0);
 }
 
 void MainWindow::viewImageSleep()
@@ -787,9 +793,9 @@ void MainWindow::viewImageSleep()
     ui->dock_status->close();
     backgroundWidget->show();
     labelDrawImage(
-        serviceImage,
-        "/root/catkin_ws/src/mobile_robot/resources/images/sleep.jpg",
-        1.0);
+                serviceImage,
+                "/root/catkin_ws/src/mobile_robot/resources/images/sleep.jpg",
+                1.0);
 }
 
 void MainWindow::viewImageWait()
@@ -822,27 +828,116 @@ void MainWindow::labelDrawImage(QLabel *label, QString imagePath, double scale)
     label->setPixmap(*buffer);
 }
 
-void MainWindow::tcpWaitTimeout(){
+void MainWindow::tcpWaitTimeout()
+{
     btnConnectServerClicked();
 }
 
-
-void MainWindow::bumperCheck(){
-    if (qnode.m_TopicPacket.m_BumperState && countDocking == 0){
+void MainWindow::bumperCheck()
+{
+    if (qnode.m_TopicPacket.m_BumperState && countDocking == 0)
+    {
         ROS_INFO("Occurred Bumper Event");
         emergencyStop();
     }
 }
 
-void MainWindow::emergencyStop(){
+void MainWindow::emergencyStop()
+{
     timerUIUpdate->stop();
     timerScenario->stop();
     timerTurning->stop();
     timerDocking->stop();
     timerTcpWait->stop();
     qnode.CancelGoal();
-    // AutoDriveFlag = false;
+    AutoDriveFlag = false;
     qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    timerBumper->stop();
+}
+
+void MainWindow::joystickTimeout(){
+    if (joystick->isFound()){
+        // Attempt to sample an event from the joystick
+        JoystickEvent event;
+        if (joystick->sample(&event))
+        {
+            if (event.isButton())
+            {
+                switch(event.number){
+                case 0: // Button A
+                    ROS_INFO("Button A is %s\n", event.value == 0 ? "up" : "down");
+                    move_direction = 3;
+                    break;
+                case 1: // Button B
+                    ROS_INFO("Button B is %s\n", event.value == 0 ? "up" : "down");
+                    move_direction = 2;
+                    break;
+                case 3: // Button X
+                    ROS_INFO("Button X is %s\n", event.value == 0 ? "up" : "down");
+                    move_direction = 1;
+                    break;
+                case 4: // Button Y
+                    ROS_INFO("Button Y is %s\n", event.value == 0 ? "up" : "down");
+                    move_direction = 4;
+                    break;
+                case 10: // Button SELCET
+                    ROS_INFO("Button SELECT is %s\n", event.value == 0 ? "up" : "down");
+                    emergencyStop();
+                    move_direction = 0;
+                    AutoDriveFlag = false;
+                    break;
+                case 11: // Button START
+                    ROS_INFO("Button START is %s\n", event.value == 0 ? "up" : "down");
+                    move_direction = -1;
+                    AutoDriveFlag = true;
+                    if (connectServer)
+                    {
+                        QByteArray txData;
+                        txData.append(QByteArray::fromRawData("\x02\x05", 2));
+                        txData.append(QByteArray::fromRawData("\x05", 1));
+                        txData.append(QByteArray::fromRawData("\x0D\x05", 2));
+                        m_Client->socket->write(txData);
+                    }
+                    on_btnSetInitialPose_clicked();
+                    break;
+                default :
+                    break;
+                }
+            }
+//            else if (event.isAxis())
+//            {
+//                ROS_INFO("Axis %u is at position %d\n", event.number, event.value);
+//            }
+        }
+
+        if (!AutoDriveFlag){
+            // cout << move_direction;
+            switch(move_direction){
+            case 0:
+                qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                break;
+            case 1:
+                qnode.KobukiMove(0.07, 0.0, 0.0, 0.0, 0.0, 0.0);
+                break;
+            case 2:
+                qnode.KobukiMove(-0.07, 0.0, 0.0, 0.0, 0.0, 0.0);
+                break;
+            case 3:
+                qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, -0.5);
+                break;
+            case 4:
+                qnode.KobukiMove(0.0, 0.0, 0.0, 0.0, 0.0, 0.5);
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    else{
+        // ROS_INFO("Joystick not connected");
+        delete joystick;
+        joystick = new Joystick("/dev/input/js0");
+    }
 }
 
 } // namespace MobileRobot

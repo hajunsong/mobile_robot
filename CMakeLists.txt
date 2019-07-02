@@ -16,11 +16,11 @@ find_package(catkin REQUIRED COMPONENTS rviz roscpp rospy nodelet pluginlib mess
                                         ecl_threads ecl_geometry ecl_linear_algebra kobuki_msgs kobuki_dock_drive nav_msgs dynamic_reconfigure)
 
 find_package(Qt5 REQUIRED Core Widgets Network)
-set(QT_LIBRARIES Qt5::Widgets)
+set(QT_LIBRARIES Qt5::Widgets Qt5::Network Qt5::Core)
 include_directories(
     ${catkin_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/PathTracking
+#    ${CMAKE_CURRENT_SOURCE_DIR}/src/PathTracking
 )
 # Use this to define what the package will export (e.g. libs, headers).
 # Since the default here is to produce only a binary, we don't worry about
@@ -41,7 +41,7 @@ catkin_package()
 
 file(GLOB QT_FORMS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ui/*.ui)
 file(GLOB QT_RESOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} resources/*.qrc)
-file(GLOB_RECURSE QT_MOC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS include/mobile_robot/*.hpp *.h)
+file(GLOB_RECURSE QT_MOC RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINKS *.hpp *.h)
 
 QT5_ADD_RESOURCES(QT_RESOURCES_CPP ${QT_RESOURCES})
 QT5_WRAP_UI(QT_FORMS_HPP ${QT_FORMS})
@@ -58,6 +58,6 @@ file(GLOB_RECURSE QT_SOURCES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} FOLLOW_SYMLINK
 ##############################################################################
 
 add_executable(mobile_robot ${QT_SOURCES} ${QT_RESOURCES_CPP} ${QT_FORMS_HPP} ${QT_MOC_HPP})
-target_link_libraries(mobile_robot ${QT_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} Qt5::Network dxl_x64_cpp rt)
+target_link_libraries(mobile_robot ${QT_LIBRARIES} ${catkin_LIBRARIES} ${Boost_LIBRARIES} dxl_x64_cpp rt)
 install(TARGETS mobile_robot RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 

@@ -12,7 +12,7 @@ DxlControl::~DxlControl()
 
 void DxlControl::dxl_init()
 {
-    portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME);
+    portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME2);
     packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
 
     if (portHandler->openPort()) {
@@ -36,6 +36,37 @@ void DxlControl::dxl_init()
     // Check Dynamixel Torque on or off
     int torque = 0;
     dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, DXL_ID, ADDR_TORQUE_ENABLE, reinterpret_cast<uint8_t*>(&torque), &dxl_error);
+#if 0
+    if (dxl_comm_result != 0){
+        // Close port
+        portHandler->closePort();
+
+        delete portHandler;
+        // delete packetHandler;
+
+        portHandler = dynamixel::PortHandler::getPortHandler(DEVICENAME2);
+        // packetHandler = dynamixel::PacketHandler::getPacketHandler(PROTOCOL_VERSION);
+
+        if (portHandler->openPort()) {
+            printf("Succeeded to open the port!\n");
+
+        }
+        else {
+            printf("Failed to open the port!\n");
+            printf("Press any key to terminate...\n");
+        }
+
+        // Set port baudrate
+        if (portHandler->setBaudRate(BAUDRATE)) {
+            printf("Succeeded to change the baudrate!\n");
+        }
+        else {
+            printf("Failed to change the baudrate!\n");
+            printf("Press any key to terminate...\n");
+        }
+        dxl_comm_result = packetHandler->read1ByteTxRx(portHandler, DXL_ID, ADDR_TORQUE_ENABLE, reinterpret_cast<uint8_t*>(&torque), &dxl_error);
+    }
+#endif
     if (dxl_comm_result != COMM_SUCCESS) {
         printf("%s\n", packetHandler->getTxRxResult(dxl_comm_result));
     }
@@ -136,7 +167,7 @@ int32_t DxlControl::getPresentPosition()
 void DxlControl::moveDxl(){
     setLEDon(Blue);
     int32_t pos = 0;
-    int32_t offset = 40000;
+    int32_t offset = 20000;
     int32_t des = init_pos + offset;
     do {
         packetHandler->write4ByteTxRx(portHandler, DXL_ID, ADDR_GOAL_POSITION, des, &dxl_error);

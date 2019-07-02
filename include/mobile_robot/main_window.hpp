@@ -39,6 +39,7 @@
 
 #include "src/AutoDocking/auto_docking_ros.hpp"
 #include "src/PathTracking/path_tracking.hpp"
+#include "src/Joystick/joystick.h"
 
 using namespace kobuki;
 
@@ -77,7 +78,7 @@ public Q_SLOTS:
     ** Auto-connections (connectSlotsByName())
     *******************************************/
     void on_actionAbout_triggered();
-    void on_button_connect_clicked(bool check );
+    void on_button_connect_clicked(bool check);
     void on_btnSetInitialPose_clicked();
     //        void on_btnSetGoalPose_clicked();
     void on_checkbox_use_environment_stateChanged(int state);
@@ -113,6 +114,7 @@ private slots:
     void docking();
     void tcpWaitTimeout();
     void bumperCheck();
+    void joystickTimeout();
 
     // Service Image Viewer
     void viewImageSmile();
@@ -139,6 +141,7 @@ private:
     QTimer                  *timerDocking;
     QTimer                  *timerTcpWait;
     QTimer                  *timerBumper;
+    QTimer                  *timerJoystick;
 
     int                     scenarioCnt;
     bool                    guestCome;
@@ -174,6 +177,10 @@ private:
     bool AutoDriveFlag;
 
     void emergencyStop();
+
+    // Create an instance of Joystick
+    Joystick *joystick;
+    int move_direction;
 };
 
 }  // namespace robomap

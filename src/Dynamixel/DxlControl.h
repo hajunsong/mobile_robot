@@ -34,7 +34,8 @@ constexpr auto PROTOCOL_VERSION = 2.0;
 // Default setting
 constexpr auto DXL_ID = 1;		// Is different in Dynamixel
 constexpr auto BAUDRATE = 4000000;	// Is different in Dynamixel
-constexpr auto DEVICENAME = "/dev/ttyUSB0";	// Is different in PC
+constexpr auto DEVICENAME1 = "/dev/ttyUSB0";	// Is different in PC
+constexpr auto DEVICENAME2 = "/dev/ttyUSB1";	// Is different in PC
 
 constexpr auto TORQUE_ENABLE = 1;
 constexpr auto TORQUE_DISABLE = 0;
